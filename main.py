@@ -27,7 +27,8 @@ async def executor(task):
     task = task.rsplit('.', 1)[0]
     try:
         exec(code, env)
-        result = str(await env['_task'](client))
+        result = await env['_task'](client)
+        result = str(result) if result is not None else ''
         open(f'{task}.out', 'w').write(result)
     except:
         open(f'{task}.err', 'w').write(traceback.format_exc())
