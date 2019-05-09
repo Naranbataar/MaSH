@@ -5,7 +5,7 @@
 if [[ $1 == 'm' ]]; then
 	dapi DELETE "/channels/$CONTEXT_CHANNEL/messages/$TEXT"
 elif [[ $1 == 'c' ]]; then
-	dapi DELETE "/chanels/$CONTEXT_CHANNEL"
+	dapi DELETE "/channels/$CONTEXT_CHANNEL"
 elif [[ $1 == 'g' ]]; then
 	dapi DELETE "/guilds/$CONTEXT_GUILD"
 elif [[ $1 == 'r' ]]; then
