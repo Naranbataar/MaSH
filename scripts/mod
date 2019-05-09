@@ -1,9 +1,10 @@
 #!/bin/bash
 
 [[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+quote="\'" ; TEXT="'${TEXT//\'/${quote}}'"; CONTEXT_GUILD="'${CONTEXT_GUILD//\'/${quote}}'"
 
 action(){
-	echo "await client.http.$1(guild_id=int('$CONTEXT_GUILD'), user_id=int('$TEXT'))" | fou
+	echo "await client.http.$1(guild_id=int($CONTEXT_GUILD), user_id=int($TEXT))" | fou
 }
 
 if [[ $1 == 'k' ]]; then
