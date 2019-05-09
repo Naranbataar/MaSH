@@ -1,0 +1,21 @@
+#!/bin/bash
+
+[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+
+action(){
+	echo "await client.http.$1(guild_id=int('$CONTEXT_GUILD'), user_id=int('$TEXT'))" | fou
+}
+
+if [[ $1 == 'k' ]]; then
+	action kick
+elif [[ $1 == 'b' ]]; then
+	action ban
+elif [[ $1 == 's' ]]; then
+	action ban
+	action unban
+elif [[ $1 == 'u' ]]; then
+	action unban
+else
+	echo "Usage: $(basename $0) [(k)ick|(b)an|(s)oftban|(u)nban]" >&2
+	exit 1
+fi
