@@ -1,17 +1,21 @@
 #!/bin/bash
 
 [[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+quote="\'" ; TEXT="'${TEXT//\'/${quote}}'"; CONTEXT_GUILD="'${CONTEXT_GUILD//\'/${quote}}'"; CONTEXT_CHANNEL="'${CONTEXT_CHANNEL//\'/${quote}}'"
+
 if [[ $1 == 'm' ]]; then
-	echo "await client.http.delete_message(channel_id=int('$CONTEXT_CHANNEL'), message_id=int('$TEXT'))" | fou
+	echo "return await client.http.delete_message(channel_id=int($CONTEXT_CHANNEL), message_id=int($TEXT))" | fou
 elif [[ $1 == 'c' ]]; then
-	echo "await client.http.delete_channel(channel_id=int('$TEXT'))" | fou
+	echo "return await client.http.delete_channel(channel_id=int($TEXT))" | fou
 elif [[ $1 == 'g' ]]; then
-	echo "await client.http.delete_guild(guild_id=int('$TEXT'))" | fou
+	echo "return await client.http.delete_guild(guild_id=int($TEXT))" | fou
 elif [[ $1 == 'r' ]]; then
-	echo "await client.http.delete_role(guild_id=int('$CONTEXT_GUILD'), role_id=int('$TEXT'))" | fou
+	echo "return await client.http.delete_role(guild_id=int($CONTEXT_GUILD), role_id=int($TEXT))" | fou
 elif [[ $1 == 'e' ]]; then
-	echo "await client.http.delete_custom_emoji(guild_id=int('$CONTEXT_GUILD'), emoji_id=int('$TEXT'))" | fou
+	echo "return await client.http.delete_custom_emoji(guild_id=int($CONTEXT_GUILD), emoji_id=int($TEXT))" | fou
+elif [[ $1 == 'i' ]]; then
+	echo "return await client.http.delete_invite(invite_id=$TEXT)" | fou
 else
-	echo "Usage: $(basename $0) [(m)essage|(c)hannel|(g)uild|(r)ole|(e)moji]" >&2
+	echo "Usage: $(basename $0) [(m)essage|(c)hannel|(g)uild|(r)ole|(e)moji|(i)nvite]" >&2
 	exit 1
 fi
