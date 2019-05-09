@@ -1,5 +1,5 @@
 #!/bin/bash
 [[ ! -z "$1" ]] && TEXT=$1 || read TEXT
-echo "await client.get_channel($CONTEXT_CHANNEL).send('$TEXT')" | fou
+echo "return (await client.get_channel($CONTEXT_CHANNEL).send('$TEXT')).id" | fou
 
 
