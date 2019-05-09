@@ -1,0 +1,13 @@
+#!/bin/bash
+
+[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+if [[ $1 == 'm' ]]; then
+	echo "await client.http.delete_message(channel_id=int('$CONTEXT_CHANNEL'), message_id=int('$TEXT'))" | fou
+elif [[ $1 == 'c' ]]; then
+	echo "await client.http.delete_channel(channel_id=int('$TEXT'))" | fou
+elif [[ $1 == 'g' ]]; then
+	echo "await client.http.delete_guild(guild_id=int('$TEXT'))" | fou
+else
+	echo "Usage: $(basename $0) [m|c|g]" >&2
+	exit 1
+fi
