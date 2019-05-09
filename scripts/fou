@@ -16,7 +16,7 @@ if os.path.isfile(out):
     sys.stdout.write(open(out).read())
     os.remove(out)
 else:
-    sus.stderr.write(open(err).read())
+    sys.stderr.write(open(err).read())
     os.remove(err)
 
 os.remove(in_)
