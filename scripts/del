@@ -7,7 +7,11 @@ elif [[ $1 == 'c' ]]; then
 	echo "await client.http.delete_channel(channel_id=int('$TEXT'))" | fou
 elif [[ $1 == 'g' ]]; then
 	echo "await client.http.delete_guild(guild_id=int('$TEXT'))" | fou
+elif [[ $1 == 'r' ]]; then
+	echo "await client.http.delete_role(guild_id=int('$CONTEXT_GUILD'), role_id=int('$TEXT'))" | fou
+elif [[ $1 == 'e' ]]; then
+	echo "await client.http.delete_custom_emoji(guild_id=int('$CONTEXT_GUILD'), emoji_id=int('$TEXT'))" | fou
 else
-	echo "Usage: $(basename $0) [m|c|g]" >&2
+	echo "Usage: $(basename $0) [(m)essage|(c)hannel|(g)uild|(r)ole|(e)moji]" >&2
 	exit 1
 fi
