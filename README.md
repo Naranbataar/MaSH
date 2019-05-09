@@ -1,4 +1,4 @@
-# MaSH - A minimalistic and highly customizable Shell-based Discord Bot
+# MaSH - A hybrid minimalistic and highly customizable Shell-based Discord Bot
 MaSh is an advanced customizable bot that interacts as a shell
 
 ## Features
