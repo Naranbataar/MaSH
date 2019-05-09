@@ -1,0 +1,26 @@
+# Required variables (local)
+MASH_CONFIG='./config.py'
+MASH_TOKEN='YOUR BOT TOKEN'
+MASH_BOT='1'
+
+# Required variables (config)
+MASH_TASKS="$HOME/.mash_tasks" ; export MASH_TASKS
+MASH_SCRIPTS=$(realpath scripts) ; export MASH_SCRIPTS
+MASH_OWNER='YOUR PROFILE ID' ; export MASH_OWNER
+
+# Optional
+MASH_MARKDOWN='bash' ; export MASH_MARKDOWN
+
+py_code(){
+   echo "import discord, importlib.util"
+   echo "spec = importlib.util.spec_from_file_location('config', '$MASH_CONFIG')"
+   echo "config = importlib.util.module_from_spec(spec)"
+   echo "spec.loader.exec_module(config)"
+   echo "client = discord.Client()"
+   echo "config.PATCH(client)"
+   echo "client.run('$MASH_TOKEN', bot=bool(int('$MASH_BOT')))"
+}
+   
+python -c "$(py_code)"
+           
+
