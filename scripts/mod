@@ -1,22 +1,14 @@
 #!/bin/bash
 
 [[ ! -z "$2" ]] && TEXT=$2 || read TEXT
-quote="\'" ; TEXT="'${TEXT//\'/${quote}}'"; CONTEXT_GUILD="'${CONTEXT_GUILD//\'/${quote}}'"
-
-action(){
-	echo "await client.http.$1(guild_id=int($CONTEXT_GUILD), user_id=int($TEXT))" | fou
-}
 
 if [[ $1 == 'k' ]]; then
-	action kick
+	dapi 'DELETE' "/guilds/$CONTEXT_GUILD/members/$TEXT"
 elif [[ $1 == 'b' ]]; then
-	action ban
-elif [[ $1 == 's' ]]; then
-	action ban
-	action unban
+	dapi 'PUT' "/guilds/$CONTEXT_GUILD/bans/$TEXT"
 elif [[ $1 == 'u' ]]; then
-	action unban
+	dapi 'DELETE' "/guilds/$CONTEXT_GUILD/bans/$TEXT"
 else
-	echo "Usage: $(basename $0) [(k)ick|(b)an|(s)oftban|(u)nban]" >&2
+	echo "Usage: $(basename $0) [(k)ick|(b)an|(u)nban]" >&2
 	exit 1
 fi
