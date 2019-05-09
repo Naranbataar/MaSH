@@ -1,0 +1,3 @@
+#!/bin/bash
+[[ ! -z "$1" ]] && TEXT=$1 || read TEXT
+echo "await client.get_guild($CONTEXT_GUILD).ban(discord.Object(id=int('$TEXT')))" | fou
