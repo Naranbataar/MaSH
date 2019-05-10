@@ -1,4 +1,4 @@
-# MaSH - A hybrid minimalistic and highly customizable Shell-based Discord Bot
+# MaSH - A minimalistic and highly customizable Shell-based Discord Bot
 MaSh is an advanced customizable bot that interacts as a shell
 
 ## Features
@@ -10,7 +10,7 @@ MaSh is an advanced customizable bot that interacts as a shell
 
 ## Requirements
 - Python 3.6+
-- `discord.py` library [rewrite]
+- `discord.py` library [rewrite] (until the bot have its own websocket logic)
 
 ## Default Environment
 
