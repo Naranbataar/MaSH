@@ -1,4 +1,0 @@
-#!/bin/bash
-[[ ! -z "$1" ]] && TEXT=$1 || read TEXT
-quote="\'" ; TEXT="'${TEXT//\'/${quote}}'"; CONTEXT_CHANNEL="'${CONTEXT_CHANNEL//\'/${quote}}'"
-echo "return (await client.get_channel(int($CONTEXT_CHANNEL)).send($TEXT)).id" | fou
