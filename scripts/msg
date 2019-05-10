@@ -1,0 +1,58 @@
+#!/bin/bash
+
+case $1 in
+'get'|'send'|'edit'|'delete'|'bulk_delete')
+	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	case $1 in
+	'get')
+		MSG=$(echo "$TEXT" | jq -r '.id')
+		dapi GET "/channels/$CONTEXT_CHANNEL/messages/$MSG" ;;
+	'send')
+		PAYLOAD=$(echo "$TEXT" | jshon -d files)
+		FILES=$(echo "$TEXT" | jshon -SQ -e files > /dev/null; echo "$?")
+		if [[ ! $FILES -eq 0 ]]; then
+			dapi POST "/channels/$CONTEXT_CHANNEL/messages" "$PAYLOAD"
+		else
+			FILES=$(echo "$TEXT" | jshon -e files)
+			FILES=$(for (( n=0; n<$(echo "$FILES" | jshon -l); n++ )); do echo -e " -F 'file$n=@$(echo "$FILES" | jshon -e $n -u )"; done)
+			curl -X "POST" -A "$MASH_USERAGENT" -H "Authorization: Bot $MASH_TOKEN" $FILES -F "payload_json=$PAYLOAD" "https://discordapp.com/api/channels/$CONTEXT_CHANNEL/messages"
+		fi ;;
+	'edit')
+		PAYLOAD=$(echo "$TEXT" | jq "del(.id)")
+		MSG=$(echo "$TEXT" | jq -r ".id")
+		dapi PATCH "/channels/$CONTEXT_CHANNEL/messages/$MSG" $PAYLOAD ;;
+	'delete')
+		MSG=$(echo "$TEXT" | jq -r ".id")
+		dapi DELETE "/channels/$CONTEXT_CHANNEL/messages/$MSG" ;;
+	'bulk_delete')
+		dapi POST "/channels/$CONTEXT_CHANNEL/messages/bulk-delete" $TEXT
+	esac ;;
+*)
+	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
+	echo "Manages the message logic for the bot"
+	echo ""
+	echo "The commands are relative to the actual CONTEXT_CHANNEL"
+	echo "Every command accepts a string of JSON, as stdout or arg"
+       	echo "Avaliable commands with their respective JSON keys:"
+	echo ""
+	echo "get: {id}"
+	echo "    id: the id of the message"
+	echo ""
+	echo "send: {content|embed|files} [nonce]"
+	echo "    content: the text of the message"
+	echo "    embed: the embed of the message"
+	echo "    files: an array of paths to the files to be uploaded"
+	echo "    nonce: the nonce of the message"
+	echo ""
+	echo "edit: {id} [content|embed]"
+	echo "    id: the id of the message"
+	echo "    content: the new text of the message"
+	echo "    embed: the new embed of the message"
+	echo ""
+	echo "delete: {id}"
+	echo "    id: the id of the message"
+	echo ""
+	echo "bulk_delete: {messages}"
+	echo "    messages: an array of the messages ids"
+	exit 1 ;;
+esac
