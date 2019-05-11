@@ -1,9 +1,11 @@
 #!/bin/bash
 
 case $1 in
-'get'|'send'|'edit'|'delete'|'bulk_delete'|'pin'|'unpin')
+'type'|'get'|'send'|'edit'|'delete'|'pin'|'unpin'|'bulk_get'|'bulk_delete')
 	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
 	case $1 in
+	'type')
+		dapi POST "/channels/$CONTEXT_CHANNEL/typing" ;;
 	'get')
 		MSG=$(echo "$TEXT" | jq -r '.id')
 		dapi GET "/channels/$CONTEXT_CHANNEL/messages/$MSG" ;;
@@ -24,14 +26,16 @@ case $1 in
 	'delete')
 		MSG=$(echo "$TEXT" | jq -r ".id")
 		dapi DELETE "/channels/$CONTEXT_CHANNEL/messages/$MSG" ;;
-	'bulk_delete')
-		dapi POST "/channels/$CONTEXT_CHANNEL/messages/bulk-delete" "$TEXT" ;;
 	'pin')
 		MSG=$(echo "$TEXT" | jq -r ".id")
 		dapi PUT "/channels/$CONTEXT_CHANNEL/pins/$MSG" ;;
 	'unpin')
 		MSG=$(echo "$TEXT" | jq -r ".id")
 		dapi DELETE "/channels/$CONTEXT_CHANNEL/pins/$MSG" ;;
+	'bulk_get')
+		dapi GET "/channels/$CONTEXT_CHANNEL/messages/" "$TEXT" ;;
+	'bulk_delete')
+		dapi POST "/channels/$CONTEXT_CHANNEL/messages/bulk-delete" "$TEXT" ;;
 	esac ;;
 *)
 	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
@@ -40,6 +44,8 @@ case $1 in
 	echo "The commands are relative to the actual CONTEXT_CHANNEL"
 	echo "Every command accepts a string of JSON, as stdout or arg"
        	echo "Avaliable commands with their respective JSON keys:"
+	echo ""
+	echo "type"
 	echo ""
 	echo "get: {id}"
 	echo "    id: (snowflake) the id of the message"
@@ -59,13 +65,19 @@ case $1 in
 	echo "delete: {id}"
 	echo "    id: (snowflake) the id of the message"
 	echo ""
-	echo "bulk_delete: {messages}"
-	echo "    messages: (array) an array of the message ids"
-	echo ""
 	echo "pin: {id}"
 	echo "    id: (snowflake) the id of the message"
 	echo ""
 	echo "unpin: {id}"
 	echo "    id: (snowflake) the id of the message"
+	echo ""
+	echo "bulk_get: [around|before|after] [limit]"
+	echo "    around: (snowflake) get messages around this message id"
+	echo "    before: (snowflake) get messages before this message id"
+	echo "    after: (snowflake) get messages after this message id"
+	echo "    limit: (integer)  max number of messages to return (1-100)"
+	echo ""
+	echo "bulk_delete: {messages}"
+	echo "    messages: (array) an array of the message ids"
 	exit 1 ;;
 esac
