@@ -33,7 +33,7 @@ case $1 in
 		MSG=$(echo "$TEXT" | jq -r ".id")
 		dapi DELETE "/channels/$CONTEXT_CHANNEL/pins/$MSG" ;;
 	'pins')
-		dapi GET "/channels/$CONTEXT_CHANNEL/pins"
+		dapi GET "/channels/$CONTEXT_CHANNEL/pins" ;;
 	'bulk_get')
 		dapi GET "/channels/$CONTEXT_CHANNEL/messages/" "$TEXT" ;;
 	'bulk_delete')
