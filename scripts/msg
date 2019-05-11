@@ -20,12 +20,12 @@ case $1 in
 	'edit')
 		PAYLOAD=$(echo "$TEXT" | jq "del(.id)")
 		MSG=$(echo "$TEXT" | jq -r ".id")
-		dapi PATCH "/channels/$CONTEXT_CHANNEL/messages/$MSG" $PAYLOAD ;;
+		dapi PATCH "/channels/$CONTEXT_CHANNEL/messages/$MSG" "$PAYLOAD" ;;
 	'delete')
 		MSG=$(echo "$TEXT" | jq -r ".id")
 		dapi DELETE "/channels/$CONTEXT_CHANNEL/messages/$MSG" ;;
 	'bulk_delete')
-		dapi POST "/channels/$CONTEXT_CHANNEL/messages/bulk-delete" $TEXT
+		dapi POST "/channels/$CONTEXT_CHANNEL/messages/bulk-delete" "$TEXT"
 	esac ;;
 *)
 	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
@@ -36,23 +36,24 @@ case $1 in
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "get: {id}"
-	echo "    id: the id of the message"
+	echo "    id: (snowflake) the id of the message"
 	echo ""
-	echo "send: {content|embed|files} [nonce]"
-	echo "    content: the text of the message"
-	echo "    embed: the embed of the message"
-	echo "    files: an array of paths to the files to be uploaded"
-	echo "    nonce: the nonce of the message"
+	echo "send: {content|embed|files} [nonce] [tts]"
+	echo "    content: (string) the text of the message (0-2000)"
+	echo "    embed: (embed object)  the embed of the message"
+	echo "    files: (array) an array of paths, the files to be uploaded"
+	echo "    nonce: (snowflake) the nonce of the message"
+	echo "    tts: (boolean) whether the message is TTS or noe"
 	echo ""
-	echo "edit: {id} [content|embed]"
-	echo "    id: the id of the message"
-	echo "    content: the new text of the message"
-	echo "    embed: the new embed of the message"
+	echo "edit: {id} [content] [embed]"
+	echo "    id: (snowflake) the id of the message"
+	echo "    content: (string) the new text of the message (0-2000)"
+	echo "    embed: (embed object) the new embed of the message"
 	echo ""
 	echo "delete: {id}"
-	echo "    id: the id of the message"
+	echo "    id: (snowflake) the id of the message"
 	echo ""
 	echo "bulk_delete: {messages}"
-	echo "    messages: an array of the messages ids"
+	echo "    messages: (array) an array of the message ids"
 	exit 1 ;;
 esac
