@@ -1,7 +1,7 @@
 #!/bin/bash
 
 case $1 in
-'type'|'get'|'send'|'edit'|'delete'|'pin'|'unpin'|'bulk_get'|'bulk_delete')
+'type'|'get'|'send'|'edit'|'delete'|'pin'|'unpin'|'pins'|'bulk_get'|'bulk_delete')
 	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
 	case $1 in
 	'type')
@@ -32,6 +32,8 @@ case $1 in
 	'unpin')
 		MSG=$(echo "$TEXT" | jq -r ".id")
 		dapi DELETE "/channels/$CONTEXT_CHANNEL/pins/$MSG" ;;
+	'pins')
+		dapi GET "/channels/$CONTEXT_CHANNEL/pins"
 	'bulk_get')
 		dapi GET "/channels/$CONTEXT_CHANNEL/messages/" "$TEXT" ;;
 	'bulk_delete')
@@ -70,6 +72,8 @@ case $1 in
 	echo ""
 	echo "unpin: {id}"
 	echo "    id: (snowflake) the id of the message"
+	echo ""
+	echo "pins"
 	echo ""
 	echo "bulk_get: [around|before|after] [limit]"
 	echo "    around: (snowflake) get messages around this message id"
