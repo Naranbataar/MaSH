@@ -1,0 +1,70 @@
+#!/bin/bash
+
+case $1 in
+'get'|'create'|'edit'|'delete'|'bulk_update')
+	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	case $1 in
+	'get')
+		CH=$(echo "$TEXT" | jq -r '.id')
+		dapi GET "/channels/$CH" ;;
+	'create')
+		dapi POST "/guilds/$CONTEXT_GUILD/channels" "$TEXT" ;;
+	'edit')
+		CH=$(echo "$TEXT" | jq -r '.id')
+		PAYLOAD=$(echo "$TEXT" | jq 'del(.id)')
+		dapi PATCH "/channels/$CH" "$PAYLOAD" ;;
+	'delete')
+		CH=$(echo "$TEXT" | jq -r '.id')
+		dapi DELETE "/channels/$CH" ;;
+	'bulk_update')
+		dapi PATCH "/guilds/$CONTEXT_GUILD/channels" "$TEXT" ;;
+	esac ;;
+*)
+	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
+	echo "Manages the channel logic for the bot"
+	echo ""
+	echo "The create and bulk_update commands  are relative to"
+	echo "the actual CONTEXT_GUILD"
+	echo "Every command accepts a string of JSON, as stdout or arg"
+       	echo "Avaliable commands with their respective JSON keys:"
+	echo ""
+	echo "get: {id}"
+	echo "    id: (snowflake) the id of the channel"
+	echo ""
+	echo "create: {name} [type] [topic] [bitrate] [user_limit] "
+	echo "[rate_limit_per_user} [position] [permission_overwrites]"	
+	echo "[parent_id] [nsfw]"
+	echo "    name: (string) channel name (2-100)"
+	echo "    type: (integer) the type of channel"
+	echo "    topic: (string) channel topic (0-1024)"
+	echo "    bitrate: (integer) the bitrate of the voice channel (voice only)"
+	echo "    user_limit: (integer) the user limit of the voice channel (voice only)"
+	echo "    rate_limit_per_user: (integer) amount of seconds a user has to wait before "
+	echo "        sending another message (0-21600)"
+	echo "    position: (integer) sorting position of the channel "
+	echo "    permission_overwrites: (array) array of overwrite objects "
+	echo "        the channel's permission overwrites"
+	echo "    parent_id: (snowflake): id of the parent category for a channel"
+	echo "    nsfw: (boolean) whether the channel is nsfw"
+	echo ""
+	echo "edit: {id} [content|embed]"
+	echo "    id: (snowflake) the id of the channel"
+	echo "    name: (string): channel name (2-100)"
+	echo "    position: (integer) the position of the channel"
+	echo "    topic: (string) channel topic (0-1024)"
+	echo "    nsfw: (boolean) whether the channel is nsfw"
+	echo "    rate_limit_per_user: (integer) amount of seconds a user has to wait before "
+        echo "        sending another message (0-21600)"
+	echo "    bitrate: (integer) the bitrate of the voice channel; (8000-96000, 128000 VIP) "
+	echo "    user_limit: (integer) the user limit of the voice channel (0-99) "
+	echo "    permission_overwrites: (array) array of overwrite objects channel or "
+	echo "          category-specific permissions "
+	echo "    parent_id: (snowflake) id of the new parent category for a channel "
+	echo ""
+	echo "delete: {id}"
+	echo "    id: (snowflake) the id of the channel"
+	echo ""
+	echo "bulk_delete: {messages}"
+	echo "    messages: (array) an array of message ids to delete (2-100)"
+	exit 1 ;;
+esac
