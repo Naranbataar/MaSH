@@ -1,0 +1,52 @@
+#!/bin/bash
+
+case $1 in
+'get'|'add'|'del'|'del_mod'|'del_all')
+	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	case $1 in
+	'get')
+		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
+		dapi GET "/channels/$CONTEXT_CHANNEL/messages/$MSG/reactions/$EMOJI" ;;
+	'add')
+		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
+		dapi PUT "/channels/$CONTEXT_CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
+	'del')
+		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
+		dapi DELETE "/channels/$CONTEXT_CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
+	'del_mod')
+		USER=$(echo "$TEXT"| jq -r ".author")
+		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
+		dapi DELETE "/channels/$CONTEXT_CHANNEL/messages/$MSG/reactions/$EMOJI/$USER" ;;
+	'del_all')
+		MSG=$(echo "$TEXT" | jq -r ".id")
+		dapi DELETE "/channels/$CONTEXT_CHANNEL/messages/$MSG/reactions" ;;
+	esac ;;
+*)
+	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
+	echo "Manages the reaction logic for the bot"
+	echo ""
+	echo "The commands are relative to the actual CONTEXT_CHANNEL"
+	echo "Every command accepts a string of JSON, as stdout or arg"
+       	echo "Avaliable commands with their respective JSON keys:"
+	echo ""
+	echo "get: {id} {emoji}"
+	echo "    id: (snowflake) the id of the message"
+	echo "    emoji: (string) the target emoji"
+	echo ""
+	echo "add: {id} {emoji}"
+	echo "    id: (snowflake) the id of the message"
+	echo "    emoji: (string) the target emoji"
+	echo ""
+	echo "del: {id} {emoji}"
+	echo "    id: (snowflake) the id of the message"
+	echo "    emoji: (string) the target emoji"
+	echo ""
+	echo "del_mod: {id} {emoji} {author}"
+	echo "    id: (snowflake) the id of the message"
+	echo "    emoji: (string) the target emoji"
+	echo "    author: (snowflake) the reaction author"
+	echo ""
+	echo "del_all: {id}"
+	echo "    id: (snowflake) the id of the message"
+	exit 1 ;;
+esac
