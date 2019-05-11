@@ -18,6 +18,13 @@ case $1 in
 		dapi DELETE "/channels/$CH" ;;
 	'bulk_update')
 		dapi PATCH "/guilds/$CONTEXT_GUILD/channels" "$TEXT" ;;
+	'perm_edit')
+		OW=$(echo "$TEXT" | jq -r '.id')
+		PAYLOAD=$(echo "$TEXT" | jq 'del(.id)')
+		dapi PUT "/channels/$CONTEXT_CHANNEL/permissions/$OW" "$PAYLOAD" ;;
+	'perm_delete')
+		OW=$(echo "$TEXT" | jq -r '.id')
+		dapi DELETE "/channels/$CONTEXT_CHANNEL/permissions/$OW" ;;
 	esac ;;
 *)
 	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
@@ -66,5 +73,13 @@ case $1 in
 	echo ""
 	echo "bulk_delete: {messages}"
 	echo "    messages: (array) an array of message ids to delete (2-100)"
+	echo ""
+	echo "perm_edit: {id}"
+	echo "    allow: (integer) the bitwise value of all allowed permissions"
+	echo "    deny: (integer) the bitwise value of all disallowed permissions"
+	echo "    type: (string) 'member' for an user or 'role' for a role"
+	echo ""
+	echo "perm_delete: {id}"
+	echo "    id: (snowflake) the id of the permission overwrite"
 	exit 1 ;;
 esac
