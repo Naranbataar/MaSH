@@ -1,7 +1,7 @@
 #!/bin/bash
 
 case $1 in
-'get'|'send'|'edit'|'delete'|'bulk_delete')
+'get'|'send'|'edit'|'delete'|'bulk_delete'|'pin'|'unpin')
 	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
 	case $1 in
 	'get')
@@ -25,7 +25,13 @@ case $1 in
 		MSG=$(echo "$TEXT" | jq -r ".id")
 		dapi DELETE "/channels/$CONTEXT_CHANNEL/messages/$MSG" ;;
 	'bulk_delete')
-		dapi POST "/channels/$CONTEXT_CHANNEL/messages/bulk-delete" "$TEXT"
+		dapi POST "/channels/$CONTEXT_CHANNEL/messages/bulk-delete" "$TEXT" ;;
+	'pin')
+		MSG=$(echo "$TEXT" | jq -r ".id")
+		dapi PUT "/channels/$CONTEXT_CHANNEL/pins/$MSG" ;;
+	'unpin')
+		MSG=$(echo "$TEXT" | jq -r ".id")
+		dapi DELETE "/channels/$CONTEXT_CHANNEL/pins/$MSG" ;;
 	esac ;;
 *)
 	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
@@ -55,5 +61,11 @@ case $1 in
 	echo ""
 	echo "bulk_delete: {messages}"
 	echo "    messages: (array) an array of the message ids"
+	echo ""
+	echo "pin: {id}"
+	echo "    id: (snowflake) the id of the message"
+	echo ""
+	echo "unpin: {id}"
+	echo "    id: (snowflake) the id of the message"
 	exit 1 ;;
 esac
