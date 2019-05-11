@@ -8,14 +8,14 @@ case $1 in
 		MSG=$(echo "$TEXT" | jq -r '.id')
 		dapi GET "/channels/$CONTEXT_CHANNEL/messages/$MSG" ;;
 	'send')
-		PAYLOAD=$(echo "$TEXT" | jshon -d files)
-		FILES=$(echo "$TEXT" | jshon -SQ -e files > /dev/null; echo "$?")
-		if [[ ! $FILES -eq 0 ]]; then
+		PAYLOAD=$(echo "$TEXT" | jq 'del(.files)')
+		FILES=$(echo "$TEXT" | jq '.files//empty')
+		if [[ -z $FILES ]]; then
 			dapi POST "/channels/$CONTEXT_CHANNEL/messages" "$PAYLOAD"
 		else
-			FILES=$(echo "$TEXT" | jshon -e files)
-			FILES=$(for (( n=0; n<$(echo "$FILES" | jshon -l); n++ )); do echo -e " -F 'file$n=@$(echo "$FILES" | jshon -e $n -u )"; done)
-			curl -X "POST" -A "$MASH_USERAGENT" -H "Authorization: Bot $MASH_TOKEN" $FILES -F "payload_json=$PAYLOAD" "https://discordapp.com/api/channels/$CONTEXT_CHANNEL/messages"
+			n=0
+			FILES=$(echo "$FILES" | jq '.[]' | while read f; do echo -e " -F 'file$n=@$f'"; n=$(( $n+1 )); done)
+			curl -s -X "POST" -A "$MASH_USERAGENT" -H "Authorization: Bot $MASH_TOKEN" -F "payload_json=$PAYLOAD" $FILES "https://discordapp.com/api/channels/$CONTEXT_CHANNEL/messages"
 		fi ;;
 	'edit')
 		PAYLOAD=$(echo "$TEXT" | jq "del(.id)")
