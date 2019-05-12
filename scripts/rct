@@ -3,23 +3,25 @@
 case $1 in
 'get'|'add'|'del'|'del_mod'|'del_all')
 	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	CHANNEL=$(echo "$TEXT" | jq -r ".channel");
+	TEXT=$(echo "$TEXT" | jq "del(.channel)")
 	case $1 in
 	'get')
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		dapi GET "/channels/$CONTEXT_CHANNEL/messages/$MSG/reactions/$EMOJI" ;;
+		dapi GET "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI" ;;
 	'add')
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		dapi PUT "/channels/$CONTEXT_CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
+		dapi PUT "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
 	'del')
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		dapi DELETE "/channels/$CONTEXT_CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
+		dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
 	'del_mod')
 		USER=$(echo "$TEXT"| jq -r ".author")
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		dapi DELETE "/channels/$CONTEXT_CHANNEL/messages/$MSG/reactions/$EMOJI/$USER" ;;
+		dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/$USER" ;;
 	'del_all')
 		MSG=$(echo "$TEXT" | jq -r ".id")
-		dapi DELETE "/channels/$CONTEXT_CHANNEL/messages/$MSG/reactions" ;;
+		dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions" ;;
 	esac ;;
 *)
 	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
@@ -29,24 +31,29 @@ case $1 in
 	echo "Every command accepts a string of JSON, as stdout or arg"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
-	echo "get: {id} {emoji}"
+	echo "get: {id} {channel} {emoji}"
 	echo "    id: (snowflake) the id of the message"
+	echo "    channel: (snowflake) the id of the channel"
 	echo "    emoji: (string) the target emoji"
 	echo ""
-	echo "add: {id} {emoji}"
+	echo "add: {id} {channel} {emoji}"
 	echo "    id: (snowflake) the id of the message"
+	echo "    channel: (snowflake) the id of the channel"
 	echo "    emoji: (string) the target emoji"
 	echo ""
-	echo "del: {id} {emoji}"
+	echo "del: {id} {channel} {emoji}"
 	echo "    id: (snowflake) the id of the message"
+	echo "    channel: (snowflake) the id of the channel"
 	echo "    emoji: (string) the target emoji"
 	echo ""
-	echo "del_mod: {id} {emoji} {author}"
+	echo "del_mod: {id} {channel} {emoji} {author}"
 	echo "    id: (snowflake) the id of the message"
+	echo "    channel: (snowflake) the id of the channel"
 	echo "    emoji: (string) the target emoji"
 	echo "    author: (snowflake) the reaction author"
 	echo ""
-	echo "del_all: {id}"
+	echo "del_all: {id} {channel}"
 	echo "    id: (snowflake) the id of the message"
+	echo "    channel: (snowflake) the id of the channel"
 	exit 1 ;;
 esac
