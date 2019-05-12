@@ -20,8 +20,6 @@ MaSh is an advanced customizable bot that interacts as a shell
 - `MASH_BOT` - If 0, it will connect as a self-bot, else, it will connect as a bot user
 
 ### (Default Config) Required Variables
-- `MASH_TASKS` - The folder that will act as a shared memory for scripts that access the bot variables, 
-its recommended to be a secure folder (to prevent shell injection), inside a ram disk (to speed up the files)
 - `MASH_SCRIPTS` - The folder that the default scripts are in, needs to be an absolute path, 
 usually is defined by `$(realpath scripts)`
 - `MASH_OWNER` - Required if `GET_COMMAND` inside `on_message` is unchanged, the id of the owner of the bot
