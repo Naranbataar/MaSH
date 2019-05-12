@@ -9,7 +9,9 @@ MaSh is an advanced customizable bot that interacts as a shell
 - Shell-like command line
 
 ## Requirements
-- Python 3.6+
+- curl
+- jq
+- Python 3.6+ (until the bot have its own websocket logic)
 - `discord.py` library [rewrite] (until the bot have its own websocket logic)
 
 ## Default Environment
