@@ -55,31 +55,3 @@ def PATCH(client):
     async def on_ready():
         print(client.user.name)
         print(client.user.id)
-
-    async def python_script_listener():
-        async def executor(task):
-            env = {**globals(), **locals()}
-            code = open(task).read()
-            code = textwrap.indent(code, ' '*4)
-            code = f'async def _task(client):\n{code}'
-            task = task.rsplit('.', 1)[0]
-            try:
-                exec(code, env)
-                result = await env['_task'](client)
-                result = str(result) if result is not None else ''
-                open(f'{task}.out', 'w').write(result)
-            except:
-                open(f'{task}.err', 'w').write(traceback.format_exc())
-
-        files = []
-        folder = ENV['MASH_TASKS']
-        while True:
-            new = [x for x in os.listdir(folder) if x.endswith('.in')]
-            for x in new:
-                if x not in files:
-                    x = os.path.join(folder, x)
-                    client.loop.create_task(executor(x))
-            files = new
-            await asyncio.sleep(0.1)
-
-    client.loop.create_task(python_script_listener())
