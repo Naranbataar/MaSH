@@ -12,7 +12,6 @@ standart input/output
 - `curl`
 - `jq`
 - `websocat`
-- `expect`
 
 ## Default Environment
 
