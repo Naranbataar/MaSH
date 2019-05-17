@@ -2,9 +2,9 @@
 MASH_WS_PID="$$"
 export MASH_WS_PID
 
-PIPE='.ws_pipe'
-mkfifo $PIPE
-exec 3<> ${PIPE}
+MASH_WS_PIPE=${MASH_WS_PIPE:-'.ws_pipe'}
+mkfifo $MASH_WS_PIPE
+exec 3<> ${MASH_WS_PIPE}
 ACKF='.ws_lastack'
 [ -f $ACKF ] || touch $ACKF
 SEQF='.ws_seqf'
@@ -68,12 +68,12 @@ while read PAYLOAD; do
 	heartbeat "$INTERVAL" &
 
 	if [ -f "$SESF" ]; then
-		gateway 2 "{\"token\": \"$MASH_TOKEN\", \"properties\": {\"\$os\": \"linux\",\"\$browser\": \"mash\",\"\$device\": \"mash\"}}"
+		gateway 2 "{\"token\": \"$MASH_AUTH_TOKEN\", \"properties\": {\"\$os\": \"linux\",\"\$browser\": \"mash\",\"\$device\": \"mash\"}}"
 	else
 		SEQ=$(cat $SEQF); SES=$(cat $SESF)
-		gateway 6 "{\"token\": \"$MASH_TOKEN\", \"session_id\": \"$SES\", \"seq\": $SEQ}"
+		gateway 6 "{\"token\": \"$MASH_AUTH_TOKEN\", \"session_id\": \"$SES\", \"seq\": $SEQ}"
 	fi ;;
 	11)
 	echo "$(( $(date +%s%N)/1000000 ))" > $ACKF ;;
 	esac	
-done < <(websocat -tnE "wss://gateway.discord.gg/?v=6&encoding=json" < $PIPE)
+done < <(websocat -tnE "wss://gateway.discord.gg/?v=6&encoding=json" < $MASH_WS_PIPE)
