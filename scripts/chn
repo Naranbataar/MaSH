@@ -1,46 +1,51 @@
 #!/bin/bash
 
 case $1 in
-'get'|'create'|'edit'|'delete'|'bulk_update')
+'get'|'create'|'edit'|'delete'|'update_pos'|'perm_edit'|'perm_delete')
 	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
 	case $1 in
 	'get')
-		CH=$(echo "$TEXT" | jq -r '.id')
-		dapi GET "/channels/$CH" ;;
+		CHANNEL=$(echo "$TEXT" | jq -r '.id')
+		dapi GET "/channels/$CHANNEL" ;;
 	'create')
-		dapi POST "/guilds/$CONTEXT_GUILD/channels" "$TEXT" ;;
+		GUILD=$(echo "$TEXT" | jq -r '.guild')
+		PAYLOAD=$(echo "$TEXT" | jq 'del(.guild)')
+		dapi POST "/guilds/$GUILD/channels" "$PAYLOAD" ;;
 	'edit')
-		CH=$(echo "$TEXT" | jq -r '.id')
+		CHANNEL=$(echo "$TEXT" | jq -r '.id')
 		PAYLOAD=$(echo "$TEXT" | jq 'del(.id)')
-		dapi PATCH "/channels/$CH" "$PAYLOAD" ;;
+		dapi PATCH "/channels/$CHANNEL" "$PAYLOAD" ;;
 	'delete')
-		CH=$(echo "$TEXT" | jq -r '.id')
+		CHANNEL=$(echo "$TEXT" | jq -r '.id')
 		dapi DELETE "/channels/$CH" ;;
-	'bulk_update')
-		dapi PATCH "/guilds/$CONTEXT_GUILD/channels" "$TEXT" ;;
+	'update_pos')
+		GUILD=$(echo "$TEXT" | jq -r '.guild')
+		PAYLOAD=$(echo "$TEXT" | jq '.data')
+		dapi PATCH "/guilds/$GUILD/channels" "$PAYLOAD" ;;
 	'perm_edit')
 		OW=$(echo "$TEXT" | jq -r '.id')
-		PAYLOAD=$(echo "$TEXT" | jq 'del(.id)')
-		dapi PUT "/channels/$CONTEXT_CHANNEL/permissions/$OW" "$PAYLOAD" ;;
+		CHANNEL=$(echo "$TEXT" | jq -r '.channel')
+		PAYLOAD=$(echo "$TEXT" | jq 'del(.id)' | jq 'del(.channel)')
+		dapi PUT "/channels/$CHANNEL/permissions/$OW" "$PAYLOAD" ;;
 	'perm_delete')
 		OW=$(echo "$TEXT" | jq -r '.id')
-		dapi DELETE "/channels/$CONTEXT_CHANNEL/permissions/$OW" ;;
+		CHANNEL=$(echo "$TEXT" | jq -r '.channel')
+		dapi DELETE "/channels/$CHANNEL/permissions/$OW" ;;
 	esac ;;
 *)
 	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
 	echo "Manages the channel logic for the bot"
 	echo ""
-	echo "The create and bulk_update commands  are relative to"
-	echo "the actual CONTEXT_GUILD"
 	echo "Every command accepts a string of JSON, as stdout or arg"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "get: {id}"
 	echo "    id: (snowflake) the id of the channel"
 	echo ""
-	echo "create: {name} [type] [topic] [bitrate] [user_limit] "
+	echo "create: {guild} {name} [type] [topic] [bitrate] [user_limit] "
 	echo "[rate_limit_per_user} [position] [permission_overwrites]"	
 	echo "[parent_id] [nsfw]"
+	echo "    guild: (snowflake) the id of the target guild"
 	echo "    name: (string) channel name (2-100)"
 	echo "    type: (integer) the type of channel"
 	echo "    topic: (string) channel topic (0-1024)"
@@ -71,15 +76,20 @@ case $1 in
 	echo "delete: {id}"
 	echo "    id: (snowflake) the id of the channel"
 	echo ""
-	echo "bulk_delete: {messages}"
-	echo "    messages: (array) an array of message ids to delete (2-100)"
+	echo "update_pos: {guild} {data}"
+	echo "    guild: (snowflake) the id of the target guild"
+	echo "    data: (array) an array of (snowflake, integer), containing the channel id"
+	echo "		and the position"
 	echo ""
-	echo "perm_edit: {id}"
+	echo "perm_edit: {id} {allow} {deny} {type}"
+	echo "    id: (snowflake) the id of the permission overwrite"
+	echo "    channel: (snowflake) the id of the channel"
 	echo "    allow: (integer) the bitwise value of all allowed permissions"
 	echo "    deny: (integer) the bitwise value of all disallowed permissions"
 	echo "    type: (string) 'member' for an user or 'role' for a role"
 	echo ""
-	echo "perm_delete: {id}"
+	echo "perm_delete: {id} {channel}"
 	echo "    id: (snowflake) the id of the permission overwrite"
+	echo "    channel: (snowflake) the id of the channel"
 	exit 1 ;;
 esac
