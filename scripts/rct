@@ -27,7 +27,6 @@ case $1 in
 	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
 	echo "Manages the reaction logic for the bot"
 	echo ""
-	echo "The commands are relative to the actual CONTEXT_CHANNEL"
 	echo "Every command accepts a string of JSON, as stdout or arg"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
