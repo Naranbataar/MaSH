@@ -1,0 +1,52 @@
+#!/bin/bash
+
+case $1 in
+'get'|'edit'|'new_dm'|'dms'|'guilds'|'connections')
+	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	case $1 in
+	'get')
+		USER=$(echo "$TEXT" | jq -r ".id")
+		dapi GET "/users/$USER" ;;
+	'edit')
+		IMAGE=$(echo "$TEXT" | jq -r ".avatar")
+		if [ -n $IMAGE ]; then
+			MIME=$(file -bN --mime-type "$IMAGE")
+			echo "data:$mimetype;base64,$(base64 -w 0 "$IMAGE")" > "$IMAGE.b64"
+			TEXT=$(echo "$TEXT" | jq --rawfile img "$IMAGE.b64" '.avatar = $img')
+			rm "$IMAGE.b64"
+		fi
+		echo $TEXT | dapi PATCH "/users/@me" ;;
+	'new_dm')
+		TEXT=(echo "$TEXT" | jq '.recipient_id = .id' | jq 'del(.id)')
+		dapi POST "/users/@me/channels/" "$TEXT" ;;
+	'dms')
+		dapi GET "/users/@me/channels/" ;;
+	'guilds')
+		dapi GET "/users/@me/guilds/" ;;
+	'connections')
+		dapi GET "/users/@me/connections/" ;;
+	esac ;;
+*)
+	echo "Usage: user {COMMAND} {JSON}" >&2
+	echo "Interacts with user endpoints"
+	echo ""
+	echo "Every command accepts a string of JSON, as stdout or arg"
+       	echo "Avaliable commands with their respective JSON keys:"
+	echo ""
+	echo "get: {id}"
+	echo "    id: (snowflake|string) the id of an user, @me for the current user"
+	echo ""
+	echo "edit: [name] [avatar]"
+	echo "    name: (string) your new username"
+	echo "    avatar: (string) the filename of your new avatar"
+	echo ""
+	echo "new_dm: {id}"
+	echo "    id: (snowflake) the id of the recipient"
+	echo ""
+	echo "dms"
+	echo ""
+	echo "guilds"
+	echo ""
+	echo "connections"
+	exit 1 ;;
+esac
