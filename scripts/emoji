@@ -27,8 +27,8 @@ case $1 in
 		dapi GET "/guilds/$GUILD/emojis" ;;
 	esac ;;
 *)
-	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
-	echo "Manages the emoji logic for the bot"
+	echo "Usage: emoji {COMMAND} {JSON}" >&2
+	echo "Interacts with the emoji endpoints"
 	echo ""
 	echo "Every command accepts a string of JSON, as stdout or arg"
        	echo "Avaliable commands with their respective JSON keys:"
