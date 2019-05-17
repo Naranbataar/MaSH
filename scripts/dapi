@@ -1,3 +1,3 @@
 [[ ! -z "$3" ]] && TEXT=$3 || read TEXT
 USER_AGENT="DiscordBot (https://github.com/Naranbataar/MaSH/ 0.0)"
-echo $TEXT | curl -s -X $1 -A "$USER_AGENT" -H "Authorization: Bot $MASH_TOKEN" -H "Content-Type: application/json" "https://discordapp.com/api$2" -d @-
+echo $TEXT | curl -s -X $1 -A "$MASH_HTTP_USERAGENT" -H "Authorization: $MASH_HTTP_AUTH" -H "Content-Type: application/json" "https://discordapp.com/api$2" -d @-
