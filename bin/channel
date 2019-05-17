@@ -1,7 +1,7 @@
 #!/bin/bash
 
 case $1 in
-'get'|'new'|'edit'|'delete'|'update_pos'|'perm_edit'|'perm_delete')
+'get'|'new'|'edit'|'edit_pos'|'del'|'list'|'perm_edit'|'perm_delete')
 	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
 	case $1 in
 	'get')
@@ -15,16 +15,16 @@ case $1 in
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
 		PAYLOAD=$(echo "$TEXT" | jq 'del(.id)')
 		dapi PATCH "/channels/$CHANNEL" "$PAYLOAD" ;;
-	'list')
-		GUILD=$(echo "$TEXT" | jq -r '.guild')
-		dapi GET "/guilds/$GUILD/channels" ;;
-	'delete')
-		CHANNEL=$(echo "$TEXT" | jq -r '.id')
-		dapi DELETE "/channels/$CH" ;;
-	'update_pos')
+	'edit_pos')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
 		PAYLOAD=$(echo "$TEXT" | jq '.data')
 		dapi PATCH "/guilds/$GUILD/channels" "$PAYLOAD" ;;
+	'del')
+		CHANNEL=$(echo "$TEXT" | jq -r '.id')
+		dapi DELETE "/channels/$CH" ;;
+	'list')
+		GUILD=$(echo "$TEXT" | jq -r '.guild')
+		dapi GET "/guilds/$GUILD/channels" ;;
 	'perm_edit')
 		OW=$(echo "$TEXT" | jq -r '.id')
 		CHANNEL=$(echo "$TEXT" | jq -r '.channel')
@@ -75,17 +75,17 @@ case $1 in
 	echo "    permission_overwrites: (array) array of overwrite objects channel or "
 	echo "          category-specific permissions "
 	echo "    parent_id: (snowflake) id of the new parent category for a channel "
-	echo ""
-	echo "list: {guild}"
-	echo "    guild: (snowflake) the id of the guild"
-	echo ""
-	echo "delete: {id}"
-	echo "    id: (snowflake) the id of the channel"
-	echo ""
-	echo "update_pos: {guild} {data}"
+	echo ""	
+	echo "edit_pos: {guild} {data}"
 	echo "    guild: (snowflake) the id of the target guild"
 	echo "    data: (array) an array of (snowflake, integer), containing the channel id"
 	echo "		and the position"
+	echo ""
+	echo "del: {id}"
+	echo "    id: (snowflake) the id of the channel"
+	echo ""
+	echo "list: {guild}"
+	echo "    guild: (snowflake) the id of the guild"
 	echo ""
 	echo "perm_edit: {id} {allow} {deny} {type}"
 	echo "    id: (snowflake) the id of the permission overwrite"
