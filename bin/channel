@@ -34,7 +34,7 @@ case $1 in
 	esac ;;
 *)
 	echo "Usage: channel {COMMAND} {JSON}" >&2
-	echo "Interacts with the channel endpoints"
+	echo "Interacts with channel endpoints"
 	echo ""
 	echo "Every command accepts a string of JSON, as stdout or arg"
        	echo "Avaliable commands with their respective JSON keys:"
