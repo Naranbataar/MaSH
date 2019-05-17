@@ -24,8 +24,8 @@ case $1 in
 		dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions" ;;
 	esac ;;
 *)
-	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
-	echo "Manages the reaction logic for the bot"
+	echo "Usage: reaction {COMMAND} {JSON}" >&2
+	echo "Interacts with reaction endpoints"
 	echo ""
 	echo "Every command accepts a string of JSON, as stdout or arg"
        	echo "Avaliable commands with their respective JSON keys:"
