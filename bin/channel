@@ -15,6 +15,9 @@ case $1 in
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
 		PAYLOAD=$(echo "$TEXT" | jq 'del(.id)')
 		dapi PATCH "/channels/$CHANNEL" "$PAYLOAD" ;;
+	'list')
+		GUILD=$(echo "$TEXT" | jq -r '.guild')
+		dapi GET "/guilds/$GUILD/channels" ;;
 	'delete')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
 		dapi DELETE "/channels/$CH" ;;
@@ -72,6 +75,9 @@ case $1 in
 	echo "    permission_overwrites: (array) array of overwrite objects channel or "
 	echo "          category-specific permissions "
 	echo "    parent_id: (snowflake) id of the new parent category for a channel "
+	echo ""
+	echo "list: {guild}"
+	echo "    guild: (snowflake) the id of the guild"
 	echo ""
 	echo "delete: {id}"
 	echo "    id: (snowflake) the id of the channel"
