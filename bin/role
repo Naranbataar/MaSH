@@ -1,0 +1,82 @@
+#!/bin/bash
+
+case $1 in
+'new'|'edit'|'del'|'list'|'give'|'take'|'pos_edit')
+	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	GUILD=$(echo "$TEXT" | jq -r ".guild");
+	TEXT=$(echo "$TEXT" | jq "del(.guild)")
+	case $1 in
+	'new')
+		dapi POST "/guild/$GUILD/roles" "$TEXT" ;;
+	'edit')
+		ROLE=$(echo "$TEXT"| jq -r ".id")
+		PAYLOAD=$(echo "$TEXT"| jq ".del(.id)")
+		dapi PATCH "/guild/$GUILD/roles/$ROLE" "$PAYLOAD" ;;
+	'del')
+		ROLE=$(echo "$TEXT"| jq -r ".id")
+		dapi DELETE "/guild/$GUILD/roles/$ROLE" ;;
+	'list')
+		dapi GET "/guild/$GUILD/roles" ;;
+	'give')
+		ROLE=$(echo "$TEXT"| jq -r ".id"); USER=$(echo "$TEXT"| jq -r ".user")
+		dapi PUT "/guilds/$GUILD/members/$USER/roles/$ROLE";;
+	'take')
+		ROLE=$(echo "$TEXT"| jq -r ".id"); USER=$(echo "$TEXT"| jq -r ".user")
+		dapi DELETE "/guilds/$GUILD/members/$USER/roles/$ROLE";;
+	'pos_edit')
+		PAYLOAD=$(echo "$TEXT" | jq '.data')
+		dapi PATCH "/guild/$GUILD/roles" "$PAYLOAD" ;;
+	esac ;;
+*)
+	echo "Usage: role {COMMAND} {JSON}" >&2
+	echo "Interacts with role endpoints"
+	echo ""
+	echo "Every command accepts a string of JSON, as stdout or arg"
+       	echo "Avaliable commands with their respective JSON keys:"
+	echo ""
+	echo "new: {guild} [name] [permissions] [color] [hoist] "
+	echo "[mentionable]"
+	echo "    guild: (snowflake) the id of the guild"
+	echo "    name: (string) the name of the role"
+	echo "    permissions: (integer) bitwise value of the "
+	echo "        enabled/disabled permissions"
+	echo "    color: (integer) RGB color"
+	echo "    hoist: (boolean) whether the role is hoisted"
+	echo "    mentionable: (boolean) whether the role is "
+	echo "        mentionable"
+	echo ""
+	echo "edit: {id} {guild} [name] [permissions] [color] "
+	echo "[hoist] [mentionable]"
+	echo "    id: (snowflake) the id of the role"
+	echo "    guild: (snowflake) the id of the guild"
+	echo "    name: (string) the name of the role"
+	echo "    permissions: (integer) bitwise value of the "
+	echo "        enabled/disabled permissions"
+	echo "    color: (integer) RGB color"
+	echo "    hoist: (boolean) whether the role is hoisted"
+	echo "    mentionable: (boolean) whether the role is "
+	echo "        mentionable"
+	echo ""
+	echo "del: {id} {guild}"
+	echo "    id: (snowflake) the id of the role"
+	echo "    guild: (snowflake) the id of the guild"
+	echo ""
+	echo "list: {guild}"
+	echo "    guild: (snowflake) the id of the guild"
+	echo ""
+	echo "give: {id} {user} {guild}"
+	echo "    id: (snowflake) the id of the role"
+	echo "    user: (snowflake) the id of the user"
+	echo "    guild: (snowflake) the id of the guild"
+	echo ""
+	echo "take: {id} {user} {guild}"
+	echo "    id: (snowflake) the id of the role"
+	echo "    user: (snowflake) the id of the user"
+	echo "    guild: (snowflake) the id of the guild"
+	echo ""
+	echo "pos_edit: {guild} {data}"
+	echo "    guild: (snowflake) the id of the target guild"
+	echo "    data: (array) an array of (snowflake, integer), containing the role id"
+	echo "		and the position"
+	exit 1 ;;
+esac
