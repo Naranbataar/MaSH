@@ -33,7 +33,7 @@ case $1 in
 		dapi DELETE "/channels/$CHANNEL/permissions/$OW" ;;
 	esac ;;
 *)
-	echo "Usage: $(basename $0) {COMMAND} {JSON}" >&2
+	echo "Usage: channel {COMMAND} {JSON}" >&2
 	echo "Interacts with the channel endpoints"
 	echo ""
 	echo "Every command accepts a string of JSON, as stdout or arg"
