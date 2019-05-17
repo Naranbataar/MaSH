@@ -28,7 +28,7 @@ case $1 in
 	esac ;;
 *)
 	echo "Usage: emoji {COMMAND} {JSON}" >&2
-	echo "Interacts with the emoji endpoints"
+	echo "Interacts with emoji endpoints"
 	echo ""
 	echo "Every command accepts a string of JSON, as stdout or arg"
        	echo "Avaliable commands with their respective JSON keys:"
