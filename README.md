@@ -9,13 +9,13 @@ write Discord Bots on pure Shell Script
 standart input/output
 
 ## Requirements
-- `curl`
 - `jq`
+- `curl`
 - `websocat`
 
 ## Default Environment
+- `MASH_WS_PID` - The pid of the running websocket
+- `MASH_WS_PIPE` - The command pipe of the running websocket
+- `MASH_HTTP_AUTH` - The Authorization header, `Bot TOKEN` for bot users, `TOKEN` for user bots
+- `MASH_HTTP_USERAGENT` - The User-Agent header
 
-- `MASH_CONFIG` - The path for the config file
-- `MASH_TOKEN` - The token of the bot user
-- `MASH_BOT` - If 0, it will connect as a self-bot, else, it will connect as a bot user
-- `MASH_USERAGENT` - The user-agent to connect to discord servers
