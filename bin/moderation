@@ -11,13 +11,13 @@ case $1 in
 		dapi DELETE "/guild/$GUILD/members/$USER" "{}";;
 	'ban')
 		USER=$(echo "$TEXT" | jq -r ".id")
-		REASON=$(echo "$TEXT" | jq -r ".reason")
+		REASON=$(echo "$TEXT" | jq -r ".reason//empty")
 		[ -n $REASON ] || REASON="reason=$REASON&"
 		DEL=$(echo "$TEXT" | jq -r '.delete_message_days//empty')
 		[ -n $DEL ] || DEL="delete-message-days=$DEL"
 		
 		[ -n $REASON$DEL ] || Q='?'
-		dapi PUT "/guilds/$GUILD/bans/$USER$Q$REASON$DEL" "{}" ;;
+		dapi PUT "/guilds/$GUILD/bans/$USER$Q$REASON$DEL" " " ;;
 	'unban')
 		USER=$(echo "$TEXT" | jq -r ".id")
 		dapi DELETE "/guilds/$GUILD/bans/$USER" "{}" ;;
@@ -27,19 +27,19 @@ case $1 in
 	'get_bans')
 		dapi GET "/guilds/$GUILD/bans" "{}" ;;
 	'prune')
-		DAYS=$(echo "$TEXT" | jq -r ".days")
+		DAYS=$(echo "$TEXT" | jq -r ".days//empty")
 		[ -n $DAYS ] || DAYS="days=$DAYS&"
-		COMPUTE=$(echo "$TEXT" | jq -r ".compute_prune_count")
+		COMPUTE=$(echo "$TEXT" | jq -r ".compute_prune_count//empty")
 		[ -n $COMPUTE ] || COMPUTE="compute-prune-count=$COMPUTE"
 		
 		[ -n $DAYS$COMPUTE ] || Q='?'
-		dapi POST "/guilds/$GUILD/prune$Q$DAYS$COMPUTE" "{}" ;;
+		dapi POST "/guilds/$GUILD/prune$Q$DAYS$COMPUTE" " " ;;
 	'count_prune')
-		DAYS=$(echo "$TEXT" | jq -r ".days")
+		DAYS=$(echo "$TEXT" | jq -r ".days//empty")
 		[ -n $DAYS ] || DAYS="days=$DAYS"
 		
 		[ -n $DAYS ] || Q='?'
-		dapi GET "/guilds/$GUILD/prune$Q$DAYS" "{}" ;;
+		dapi GET "/guilds/$GUILD/prune$Q$DAYS" " " ;;
 	esac ;;
 *)
 	echo "Usage: moderation {COMMAND} {JSON}" >&2
