@@ -1,0 +1,77 @@
+#!/bin/bash
+
+case $1 in
+'kick'|'ban'|'unban'|'get_ban'|'get_bans'|'prune'|'count_prune')
+	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	GUILD=$(echo "$TEXT" | jq -r ".guild");
+	TEXT=$(echo "$TEXT" | jq "del(.guild)")
+	case $1 in
+	'kick')
+		USER=$(echo "$TEXT" | jq -r ".id")
+		dapi DELETE "/guild/$GUILD/members/$USER" "{}";;
+	'ban')
+		USER=$(echo "$TEXT" | jq -r ".id")
+		REASON=$(echo "$TEXT" | jq -r ".reason")
+		[ -n $REASON ] || REASON="reason=$REASON&"
+		DEL=$(echo "$TEXT" | jq -r '.delete_message_days//empty')
+		[ -n $DEL ] || DEL="delete-message-days=$DEL"
+		dapi PUT "/guilds/$GUILD/bans/$USER?$REASON$DEL" "{}" ;;
+	'unban')
+		USER=$(echo "$TEXT" | jq -r ".id")
+		dapi DELETE "/guilds/$GUILD/bans/$USER" "{}" ;;
+	'get_ban')
+		USER=$(echo "$TEXT"| jq -r ".id")
+		dapi GET "/guilds/$GUILD/bans/$USER" "{}" ;;
+	'get_bans')
+		dapi GET "/guilds/$GUILD/bans" "{}" ;;
+	'prune')
+		DAYS=$(echo "$TEXT" | jq -r ".days")
+		[ -n $DAYS ] || DAYS="days=$DAYS&"
+		COMPUTE=$(echo "$TEXT" | jq -r ".compute_prune_count")
+		[ -n $COMPUTE ] || COMPUTE="compute-prune-count=$COMPUTE"
+		dapi POST "/guilds/$GUILD/prune?$DAYS$COMPUTE" ;;
+	'count_prune')
+		DAYS=$(echo "$TEXT" | jq -r ".days")
+		[ -n $DAYS ] || DAYS="days=$DAYS"
+		dapi GET "/guilds/$GUILD/prune?$DAYS" ;;
+	esac ;;
+*)
+	echo "Usage: moderation {COMMAND} {JSON}" >&2
+	echo "Interacts with moderation endpoints"
+	echo ""
+	echo "Every command accepts a string of JSON, as stdout or arg"
+       	echo "Avaliable commands with their respective JSON keys:"
+	echo ""
+	echo "kick: {id} {guild}"
+	echo "    id: (snowflake) the id of the user"
+	echo "    guild: (snowflake) the id of the guild"
+	echo ""
+	echo "ban: {id} {guild} [reason] [delete_message_days]"
+	echo "    id: (snowflake) the id of the user"
+	echo "    guild: (snowflake) the id of the guild"
+	echo "    reason: (string) reason for the ban"
+	echo "    delete_message_days: (integer) number of"
+	echo "        days to delete messages for (0-7)"
+	echo ""
+	echo "unban: {id} {guild}"
+	echo "    id: (snowflake) the id of the user"
+	echo "    guild: (snowflake) the id of the guild"
+	echo ""
+	echo "get_ban: {id} {guild}"
+	echo "    id: (snowflake) the id of the user"
+	echo "    guild: (snowflake) the id of the guild"
+	echo ""
+	echo "get_bans: {guild}"
+	echo "    guild: (snowflake) the id of the guild"
+	echo ""
+	echo "prune: {guild} [days] [compute_prune_count]"
+	echo "    guild: (snowflake) the id of the guild"
+	echo "    days: (snowflake) number of days to prune (>=1)"
+	echo "    compute_prune_count: (boolean) whether 'pruned'"
+	echo "        is returned"
+	echo ""
+	echo "count_prune: {guild} [days]"
+	echo "    guild: (snowflake) the id of the guild"
+	echo "    days: (snowflake) number of days to prune (>=1)"
+	exit 1 ;;
+esac
