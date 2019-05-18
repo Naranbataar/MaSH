@@ -10,12 +10,7 @@ case $1 in
 		EMOJI=$(echo "$TEXT" | jq -r ".id")
 		dapi GET "/guilds/$GUILD/emojis/$EMOJI" ;;
 	'new')
-		IMAGE=$(echo "$TEXT" | jq -r ".image")
-		MIME=$(file -bN --mime-type "$IMAGE")
-		echo "data:$mimetype;base64,$(base64 -w 0 "$IMAGE")" > "$IMAGE.b64"
-		TEXT=$(echo "$TEXT" | jq --rawfile img "$IMAGE.b64" '.image = $img')
-		rm "$IMAGE.b64"
-		echo $TEXT | dapi POST "/guilds/$GUILD/emojis" ;;
+		echo "$TEXT" | dapi POST "/guilds/$GUILD/emojis" ;;
 	'edit')
 		PAYLOAD=$(echo "$TEXT" | jq "del(.emoji)")
 		EMOJI=$(echo "$TEXT" | jq -r ".id")
@@ -40,14 +35,14 @@ case $1 in
 	echo "new: {guild} {name} {image} {roles}"
 	echo "    guild: (snowflake) the target guild"
 	echo "    name: (string) name of the emoji"
-	echo "    image: (string) the filename of the 128x128 image"
-	echo "    roles: (array)i roles for which the emoji will be whitelisted"
+	echo "    image: (uri image) the data of the 128x128 image"
+	echo "    roles: (array) roles for which the emoji will be whitelisted"
 	echo ""
 	echo "edit: {id} {guild} {name} {roles}"
 	echo "    id: (snowflake) the id of the emoji"
 	echo "    guild: (snowflake) the target guild"
 	echo "    name: (string) name of the emoji"
-	echo "    roles: (array)i roles for which the emoji will be whitelisted"
+	echo "    roles: (array) roles for which the emoji will be whitelisted"
 	echo ""
 	echo "del: {id} {emoji}"
 	echo "    id: (snowflake) the id of the emoji"
