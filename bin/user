@@ -15,13 +15,15 @@ case $1 in
 	'dms')
 		dapi GET "/users/@me/channels" "{}" ;;
 	'guilds')		
-		BEFORE=$(echo "$TEXT" | jq -r ".before")
+		BEFORE=$(echo "$TEXT" | jq -r ".before//empty")
 		[ -n $BEFORE ] || BEFORE="before=$BEFORE&"
-		AFTER=$(echo "$TEXT" | jq -r ".after")
+		AFTER=$(echo "$TEXT" | jq -r ".after//empty")
 		[ -n $AFTER ] || AFTER="after=$AFTER&"
-		LIMIT=$(echo "$TEXT" | jq -r ".limit")
-		[ -n $LIMIT ] || LIMIT="limit=$LIMIT&"
-		dapi GET "/users/@me/guilds?$BEFORE$AFTER$LIMIT" "{}" ;;
+		LIMIT=$(echo "$TEXT" | jq -r ".limit//empty")
+		[ -n $LIMIT ] || LIMIT="limit=$LIMIT"
+
+		[ -n $BEFORE$AFTER$LIMIT ] || Q='?'
+		dapi GET "/users/@me/guilds$Q$BEFORE$AFTER$LIMIT" " " ;;
 	'connections')
 		dapi GET "/users/@me/connections" "{}" ;;
 	esac ;;
