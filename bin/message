@@ -7,10 +7,10 @@ case $1 in
 	TEXT=$(echo "$TEXT" | jq 'del(.channel)')
 	case $1 in
 	'type')
-		dapi POST "/channels/$CHANNEL/typing" ;;
+		dapi POST "/channels/$CHANNEL/typing" "{}" ;;
 	'get')
 		MSG=$(echo "$TEXT" | jq -r '.id')
-		dapi GET "/channels/$CHANNEL/messages/$MSG" ;;
+		dapi GET "/channels/$CHANNEL/messages/$MSG" "{}" ;;
 	'send')
 		PAYLOAD=$(echo "$TEXT" | jq 'del(.files)')
 		FILES=$(echo "$TEXT" | jq '.files//empty')
@@ -27,15 +27,15 @@ case $1 in
 		dapi PATCH "/channels/$CHANNEL/messages/$MSG" "$PAYLOAD" ;;
 	'delete')
 		MSG=$(echo "$TEXT" | jq -r ".id")
-		dapi DELETE "/channels/$CHANNEL/messages/$MSG" ;;
+		dapi DELETE "/channels/$CHANNEL/messages/$MSG" "{}" ;;
 	'pin')
 		MSG=$(echo "$TEXT" | jq -r ".id")
-		dapi PUT "/channels/$CHANNEL/pins/$MSG" ;;
+		dapi PUT "/channels/$CHANNEL/pins/$MSG" "{}";;
 	'unpin')
 		MSG=$(echo "$TEXT" | jq -r ".id")
-		dapi DELETE "/channels/$CHANNEL/pins/$MSG" ;;
+		dapi DELETE "/channels/$CHANNEL/pins/$MSG" "{}";;
 	'pins')
-		dapi GET "/channels/$CHANNEL/pins" ;;
+		dapi GET "/channels/$CHANNEL/pins" "{}";;
 	'bulk_get')
 		dapi GET "/channels/$CHANNEL/messages/" "$TEXT" ;;
 	'bulk_delete')
