@@ -29,11 +29,11 @@ case $1 in
 		[ -n $DAYS ] || DAYS="days=$DAYS&"
 		COMPUTE=$(echo "$TEXT" | jq -r ".compute_prune_count")
 		[ -n $COMPUTE ] || COMPUTE="compute-prune-count=$COMPUTE"
-		dapi POST "/guilds/$GUILD/prune?$DAYS$COMPUTE" ;;
+		dapi POST "/guilds/$GUILD/prune?$DAYS$COMPUTE" "{}" ;;
 	'count_prune')
 		DAYS=$(echo "$TEXT" | jq -r ".days")
 		[ -n $DAYS ] || DAYS="days=$DAYS"
-		dapi GET "/guilds/$GUILD/prune?$DAYS" ;;
+		dapi GET "/guilds/$GUILD/prune?$DAYS" "{}" ;;
 	esac ;;
 *)
 	echo "Usage: moderation {COMMAND} {JSON}" >&2
