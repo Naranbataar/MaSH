@@ -6,7 +6,7 @@ case $1 in
 	case $1 in
 	'get')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
-		dapi GET "/channels/$CHANNEL" ;;
+		dapi GET "/channels/$CHANNEL" "{}" ;;
 	'new')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
 		PAYLOAD=$(echo "$TEXT" | jq 'del(.guild)')
@@ -17,10 +17,10 @@ case $1 in
 		dapi PATCH "/channels/$CHANNEL" "$PAYLOAD" ;;
 	'del')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
-		dapi DELETE "/channels/$CH" ;;
+		dapi DELETE "/channels/$CH" "{}" ;;
 	'list')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
-		dapi GET "/guilds/$GUILD/channels" ;;
+		dapi GET "/guilds/$GUILD/channels" "{}" ;;
 	'pos_edit')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
 		PAYLOAD=$(echo "$TEXT" | jq '.data')
@@ -33,7 +33,7 @@ case $1 in
 	'perm_delete')
 		OW=$(echo "$TEXT" | jq -r '.id')
 		CHANNEL=$(echo "$TEXT" | jq -r '.channel')
-		dapi DELETE "/channels/$CHANNEL/permissions/$OW" ;;
+		dapi DELETE "/channels/$CHANNEL/permissions/$OW" "{}" ;;
 	esac ;;
 *)
 	echo "Usage: channel {COMMAND} {JSON}" >&2
