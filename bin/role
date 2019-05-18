@@ -14,15 +14,15 @@ case $1 in
 		dapi PATCH "/guild/$GUILD/roles/$ROLE" "$PAYLOAD" ;;
 	'del')
 		ROLE=$(echo "$TEXT"| jq -r ".id")
-		dapi DELETE "/guild/$GUILD/roles/$ROLE" ;;
+		dapi DELETE "/guild/$GUILD/roles/$ROLE" "{}" ;;
 	'list')
-		dapi GET "/guild/$GUILD/roles" ;;
+		dapi GET "/guild/$GUILD/roles" "{}" ;;
 	'give')
 		ROLE=$(echo "$TEXT"| jq -r ".id"); USER=$(echo "$TEXT"| jq -r ".user")
-		dapi PUT "/guilds/$GUILD/members/$USER/roles/$ROLE";;
+		dapi PUT "/guilds/$GUILD/members/$USER/roles/$ROLE" "{}" ;;
 	'take')
 		ROLE=$(echo "$TEXT"| jq -r ".id"); USER=$(echo "$TEXT"| jq -r ".user")
-		dapi DELETE "/guilds/$GUILD/members/$USER/roles/$ROLE";;
+		dapi DELETE "/guilds/$GUILD/members/$USER/roles/$ROLE" "{}" ;;
 	'pos_edit')
 		PAYLOAD=$(echo "$TEXT" | jq '.data')
 		dapi PATCH "/guild/$GUILD/roles" "$PAYLOAD" ;;
