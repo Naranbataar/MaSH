@@ -1,0 +1,10 @@
+#!/bin/bash
+[[ -z "$1" ]] && echo "Opens a file and converts it to a URI scheme inside a json key"; echo "Usage: urify {KEY} {JSON}"; exit 1
+[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+
+IMAGE=$(echo "$TEXT" | jq -r ".$1")
+MIME=$(file -bN --mime-type "$IMAGE")
+echo "data:$mimetype;base64,$(base64 -w 0 "$IMAGE")" > "$IMAGE.b64"
+TEXT=$(echo "$TEXT" | jq --rawfile img "$IMAGE.b64" ".$1 = \$img")
+rm "$IMAGE.b64"
+echo "$TEXT"
