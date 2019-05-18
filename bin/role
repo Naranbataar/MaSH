@@ -7,16 +7,16 @@ case $1 in
 	TEXT=$(echo "$TEXT" | jq "del(.guild)")
 	case $1 in
 	'new')
-		dapi POST "/guild/$GUILD/roles" "$TEXT" ;;
+		dapi POST "/guilds/$GUILD/roles" "$TEXT" ;;
 	'edit')
 		ROLE=$(echo "$TEXT"| jq -r ".id")
 		PAYLOAD=$(echo "$TEXT"| jq ".del(.id)")
-		dapi PATCH "/guild/$GUILD/roles/$ROLE" "$PAYLOAD" ;;
+		dapi PATCH "/guilds/$GUILD/roles/$ROLE" "$PAYLOAD" ;;
 	'del')
 		ROLE=$(echo "$TEXT"| jq -r ".id")
-		dapi DELETE "/guild/$GUILD/roles/$ROLE" "{}" ;;
+		dapi DELETE "/guilds/$GUILD/roles/$ROLE" "{}" ;;
 	'list')
-		dapi GET "/guild/$GUILD/roles" "{}" ;;
+		dapi GET "/guilds/$GUILD/roles" "{}" ;;
 	'give')
 		ROLE=$(echo "$TEXT"| jq -r ".id"); USER=$(echo "$TEXT"| jq -r ".user")
 		dapi PUT "/guilds/$GUILD/members/$USER/roles/$ROLE" "{}" ;;
