@@ -7,8 +7,16 @@ case $1 in
 	TEXT=$(echo "$TEXT" | jq "del(.channel)")
 	case $1 in
 	'get')
+		BEFORE=$(echo "$TEXT" | jq -r ".before//empty")
+		[ -n $BEFORE ] || BEFORE="before=$BEFORE&"
+		AFTER=$(echo "$TEXT" | jq -r ".after//empty")
+		[ -n $AFTER ] || AFTER="after=$AFTER&"
+		LIMIT=$(echo "$TEXT" | jq -r ".limit//empty")
+		[ -n $LIMIT ] || LIMIT="limit=$LIMIT"
+		
+		[ -n $BEFORE$AFTER$LIMIT ] || Q='?'
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		dapi GET "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI" "{}" ;;
+		dapi GET "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI$Q$BEFORE$AFTER$LIMIT" " " ;;
 	'add')
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
 		dapi PUT "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" "{}" ;;
@@ -30,10 +38,13 @@ case $1 in
 	echo "Every command accepts a string of JSON, as stdout or arg"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
-	echo "get: {id} {channel} {emoji}"
+	echo "get: {id} {channel} {emoji} [before] [after] [limit]"
 	echo "    id: (snowflake) the id of the message"
 	echo "    channel: (snowflake) the id of the channel"
 	echo "    emoji: (string) the target emoji"
+	echo "    before: (snowflake) get users before this message id"
+	echo "    after: (snowflake) get users after this message id"
+	echo "    limit: (integer)  max number of users to return (1-100)"
 	echo ""
 	echo "add: {id} {channel} {emoji}"
 	echo "    id: (snowflake) the id of the message"
