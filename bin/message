@@ -37,7 +37,17 @@ case $1 in
 	'pins')
 		dapi GET "/channels/$CHANNEL/pins" "{}";;
 	'bulk_get')
-		dapi GET "/channels/$CHANNEL/messages/" "$TEXT" ;;
+		BEFORE=$(echo "$TEXT" | jq -r ".before//empty")
+		[ -n $BEFORE ] || BEFORE="before=$BEFORE&"
+		AFTER=$(echo "$TEXT" | jq -r ".after//empty")
+		[ -n $AFTER ] || AFTER="after=$AFTER&"
+		AROUND=$(echo "$TEXT" | jq -r ".around//empty")
+		[ -n $AROUND ] || AROUND="around=$AROUND&"
+		LIMIT=$(echo "$TEXT" | jq -r ".limit//empty")
+		[ -n $LIMIT ] || LIMIT="limit=$LIMIT"
+
+		[ -n $BEFORE$AFTER$AROUND$LIMIT ] || Q='?'
+		dapi GET "/channels/$CHANNEL/messages$Q$BEFORE$AFTER$AROUND$LIMIT" " " ;;
 	'bulk_delete')
 		dapi POST "/channels/$CHANNEL/messages/bulk-delete" "$TEXT" ;;
 	esac ;;
