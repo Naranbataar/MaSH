@@ -10,10 +10,11 @@ case $1 in
 		EMOJI=$(echo "$TEXT" | jq -r ".id")
 		dapi GET "/guilds/$GUILD/emojis/$EMOJI" "{}" ;;
 	'new')
-		echo "$TEXT" | dapi POST "/guilds/$GUILD/emojis" ;;
+		PAYLOAD=$(filter-args json "$TEXT" 'name,image,roles')
+		echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/emojis" ;;
 	'edit')
-		PAYLOAD=$(echo "$TEXT" | jq "del(.emoji)")
 		EMOJI=$(echo "$TEXT" | jq -r ".id")
+		PAYLOAD=$(filter-args json "$TEXT" 'name,roles')
 		dapi PATCH "/guilds/$GUILD/emojis/$EMOJI" "$PAYLOAD" ;;
 	'del')
 		EMOJI=$(echo "$TEXT" | jq -r ".id")
