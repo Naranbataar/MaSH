@@ -12,8 +12,8 @@ case $1 in
 		MSG=$(echo "$TEXT" | jq -r '.id')
 		dapi GET "/channels/$CHANNEL/messages/$MSG" "{}" ;;
 	'send')
-		PAYLOAD=$(echo "$TEXT" | jq 'del(.files)')
 		FILES=$(echo "$TEXT" | jq '.files//empty')
+		PAYLOAD=$(filter-args json "$TEXT" 'content,embed,nonce,tts')
 		if [[ -z $FILES ]]; then
 			dapi POST "/channels/$CHANNEL/messages" "$PAYLOAD"
 		else
@@ -22,8 +22,8 @@ case $1 in
 			curl -s -X "POST" -A "$MASH_USERAGENT" -H "Authorization: Bot $MASH_TOKEN" -F "payload_json=$PAYLOAD" $FILES "https://discordapp.com/api/channels/$CHANNEL/messages"
 		fi ;;
 	'edit')
-		PAYLOAD=$(echo "$TEXT" | jq "del(.id)")
 		MSG=$(echo "$TEXT" | jq -r ".id")
+		PAYLOAD=$(filter-args json "$TEXT" 'content,embed')
 		dapi PATCH "/channels/$CHANNEL/messages/$MSG" "$PAYLOAD" ;;
 	'delete')
 		MSG=$(echo "$TEXT" | jq -r ".id")
@@ -37,19 +37,11 @@ case $1 in
 	'pins')
 		dapi GET "/channels/$CHANNEL/pins" "{}";;
 	'bulk_get')
-		BEFORE=$(echo "$TEXT" | jq -r ".before//empty")
-		[ -n $BEFORE ] || BEFORE="before=$BEFORE&"
-		AFTER=$(echo "$TEXT" | jq -r ".after//empty")
-		[ -n $AFTER ] || AFTER="after=$AFTER&"
-		AROUND=$(echo "$TEXT" | jq -r ".around//empty")
-		[ -n $AROUND ] || AROUND="around=$AROUND&"
-		LIMIT=$(echo "$TEXT" | jq -r ".limit//empty")
-		[ -n $LIMIT ] || LIMIT="limit=$LIMIT"
-
-		[ -n $BEFORE$AFTER$AROUND$LIMIT ] || Q='?'
-		dapi GET "/channels/$CHANNEL/messages$Q$BEFORE$AFTER$AROUND$LIMIT" " " ;;
+		QUERY=$(filter-args query "$TEXT" 'before,after,around,limit')
+		dapi GET "/channels/$CHANNEL/messages$QUERY" " " ;;
 	'bulk_delete')
-		dapi POST "/channels/$CHANNEL/messages/bulk-delete" "$TEXT" ;;
+		PAYLOAD=$(filter-args json "$TEXT" 'messages')
+		dapi POST "/channels/$CHANNEL/messages/bulk-delete" "$PAYLOAD" ;;
 	esac ;;
 *)
 	echo "Usage: message {COMMAND} {JSON}" >&2
