@@ -7,16 +7,17 @@ write Discord Bots on pure Shell Script
 - Follows the Unix Philosophy
 - Universal, scripts of any language can   
 interact using the standart input/output
+- Implements the entire Discord API
+- Voice Support [TODO]
 
 ## Requirements
 - `jq`
 - `curl`
 - `websocat`
 
-## Default Environment
+## Environment
 - `MASH_AUTH_TOKEN` - The token of the user
 - `MASH_AUTH_BOT` - `1` for bot users, `0` for user bots
-- `MASH_HTTP_USERAGENT` - The User-Agent header
-- `MASH_WS_PID` - The pid of the running websocket
-- `MASH_WS_PIPE` - The command pipe of the running websocket
+- `MASH_STATUS_DIR` - The directory where the scripts will save  
+their pipes and statuses
 
