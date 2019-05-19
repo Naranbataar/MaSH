@@ -9,7 +9,7 @@ case $1 in
 		dapi GET "/invites/$INV" "{}" ;;
 	'new')
 		CHANNEL=$(echo "$TEXT" | jq -r ".channel")
-		PAYLOAD=$(echo "$TEXT" | jq "del(.channel)")
+		PAYLOAD=$(filter-args json "$TEXT" 'max_age,max_uses,temporary,unique')
 		dapi POST "/channels/$CHANNEL/invites" "$PAYLOAD";;
 	'del')
 		INV=$(echo "$TEXT" | jq -r ".code")
@@ -31,8 +31,8 @@ case $1 in
 	echo "get: {code}"
 	echo "    code: (string) the code of the invite"
 	echo ""
-	echo "new: {id} [max_age] [max_uses] [temporary] [unique]"
-	echo "    id: (snowflake) the id of the channel"
+	echo "new: {channel} [max_age] [max_uses] [temporary] [unique]"
+	echo "    channel: (snowflake) the id of the channel"
 	echo "    max_age: (integer) seconds for the invite to be valid, 0 for forever (default: 86400)"
 	echo "    max_uses: (integer) max number of uses, 0 for unlimited (default: 0)"
 	echo "    temporary: (boolean) if the invite only grants temporary membership (default:false)"
