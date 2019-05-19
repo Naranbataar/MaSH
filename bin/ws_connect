@@ -2,14 +2,15 @@
 MASH_WS_PID="$$"
 export MASH_WS_PID
 
-MASH_WS_PIPE=${MASH_WS_PIPE:-'.ws_pipe'}
-mkfifo $MASH_WS_PIPE
-exec 3<> ${MASH_WS_PIPE}
-ACKF='.ws_lastack'
+PIPE="$MASH_STATUS_DIR/ws_pipe"
+[ -f $PIPE ] && echo "A instance of the connection script its already using '$MASH_STATUS_DIR'" ; echo 'If not, delete the ws_pipe' ; exit 1
+mkfifo $PIPE
+exec 3<> ${PIPE}
+ACKF="$MASH_STATUS_DIR/ws_lastack"
 [ -f $ACKF ] || touch $ACKF
-SEQF='.ws_seqf'
+SEQF="$MASH_STATUS_DIR/ws_seqf"
 [ -f $SEQF ] || touch $SEQF
-SESF='.ws_sessionid'
+SESF="$MASH_STATUS_DIR/ws_sessionid"
 [ -f $SESF ] || touch $SESF
 
 clean(){
@@ -76,4 +77,4 @@ while read PAYLOAD; do
 	11)
 	echo "$(( $(date +%s%N)/1000000 ))" > $ACKF ;;
 	esac	
-done < <(websocat -tnE "wss://gateway.discord.gg/?v=6&encoding=json" < $MASH_WS_PIPE)
+done < <(websocat -tnE "wss://gateway.discord.gg/?v=6&encoding=json" < $PIPE)
