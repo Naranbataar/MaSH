@@ -8,22 +8,17 @@ case $1 in
 		USER=$(echo "$TEXT" | jq -r ".id")
 		dapi GET "/users/$USER" "{}" ;;
 	'edit')
-		echo "$TEXT" | dapi PATCH "/users/@me" ;;
+		PAYLOAD=$(filter-args json "$TEXT" 'name,avatar')
+		echo "$PAYLOAD" | dapi PATCH "/users/@me" ;;
 	'new_dm')
-		TEXT=$(echo "$TEXT" | jq '.recipient_id = .id' | jq 'del(.id)')
-		dapi POST "/users/@me/channels" "$TEXT" ;;
+		PAYLOAD=$(filter-args json "$TEXT" 'id')
+		PAYLOAD=$(echo "$PAYLOAD" | jq '.recipient_id = .id' | jq 'del(.id)')
+		dapi POST "/users/@me/channels" "$PAYLOAD" ;;
 	'dms')
 		dapi GET "/users/@me/channels" "{}" ;;
 	'guilds')		
-		BEFORE=$(echo "$TEXT" | jq -r ".before//empty")
-		[ -n $BEFORE ] || BEFORE="before=$BEFORE&"
-		AFTER=$(echo "$TEXT" | jq -r ".after//empty")
-		[ -n $AFTER ] || AFTER="after=$AFTER&"
-		LIMIT=$(echo "$TEXT" | jq -r ".limit//empty")
-		[ -n $LIMIT ] || LIMIT="limit=$LIMIT"
-
-		[ -n $BEFORE$AFTER$LIMIT ] || Q='?'
-		dapi GET "/users/@me/guilds$Q$BEFORE$AFTER$LIMIT" " " ;;
+		QUERY=$(filter-args query "$TEXT" 'before,after,limit')
+		dapi GET "/users/@me/guilds$QUERY" " " ;;
 	'connections')
 		dapi GET "/users/@me/connections" "{}" ;;
 	esac ;;
