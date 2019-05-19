@@ -7,16 +7,9 @@ case $1 in
 	TEXT=$(echo "$TEXT" | jq "del(.channel)")
 	case $1 in
 	'get')
-		BEFORE=$(echo "$TEXT" | jq -r ".before//empty")
-		[ -n $BEFORE ] || BEFORE="before=$BEFORE&"
-		AFTER=$(echo "$TEXT" | jq -r ".after//empty")
-		[ -n $AFTER ] || AFTER="after=$AFTER&"
-		LIMIT=$(echo "$TEXT" | jq -r ".limit//empty")
-		[ -n $LIMIT ] || LIMIT="limit=$LIMIT"
-		
-		[ -n $BEFORE$AFTER$LIMIT ] || Q='?'
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		dapi GET "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI$Q$BEFORE$AFTER$LIMIT" " " ;;
+		QUERY=$(filter-args query "$TEXT" 'before,after,limit')
+		dapi GET "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI$QUERY" " " ;;
 	'add')
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
 		dapi PUT "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" "{}" ;;
