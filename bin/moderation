@@ -1,14 +1,11 @@
 #!/bin/bash
 
 case $1 in
-'kick'|'ban'|'unban'|'get_ban'|'get_bans'|'prune'|'count_prune')
+'ban'|'unban'|'get_ban'|'get_bans'|'prune'|'count_prune')
 	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
 	GUILD=$(echo "$TEXT" | jq -r ".guild");
 	TEXT=$(echo "$TEXT" | jq "del(.guild)")
 	case $1 in
-	'kick')
-		USER=$(echo "$TEXT" | jq -r ".id")
-		dapi DELETE "/guild/$GUILD/members/$USER" "{}";;
 	'ban')
 		USER=$(echo "$TEXT" | jq -r ".id")
 		REASON=$(echo "$TEXT" | jq -r ".reason//empty")
@@ -47,10 +44,6 @@ case $1 in
 	echo ""
 	echo "Every command accepts a string of JSON, as stdout or arg"
        	echo "Avaliable commands with their respective JSON keys:"
-	echo ""
-	echo "kick: {id} {guild}"
-	echo "    id: (snowflake) the id of the user"
-	echo "    guild: (snowflake) the id of the guild"
 	echo ""
 	echo "ban: {id} {guild} [reason] [delete_message_days]"
 	echo "    id: (snowflake) the id of the user"
