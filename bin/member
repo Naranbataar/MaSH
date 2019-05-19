@@ -1,0 +1,74 @@
+#!/bin/bash
+
+case $1 in
+'get'|'new'|'edit'|'del'|'list'|'my_nick_edit')
+	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	GUILD=$(echo "$TEXT" | jq -r ".guild");
+	TEXT=$(echo "$TEXT" | jq "del(.guild)")
+	case $1 in
+	'get')
+		USER=$(echo "$TEXT" | jq -r ".id")
+		dapi GET "/guilds/$GUILD/members/$USER" "{}" ;;
+	'new')
+		USER=$(echo "$TEXT" | jq -r ".id")
+		PAYLOAD=$(filter-args json "$TEXT" 'access_token,nick,roles,mute,deaf')
+		dapi PUT "/guilds/$GUILD/members/$USER" "$PAYLOAD" ;;
+	'edit')
+		USER=$(echo "$TEXT" | jq -r ".id")
+		PAYLOAD=$(filter-args json "$TEXT" 'nick,roles,mute,deaf,channel_id')
+		dapi PATCH "/guilds/$GUILD/members/$USER" "$PAYLOAD" ;;
+	'del')
+		USER=$(echo "$TEXT" | jq -r ".id")
+		dapi DELETE "/guild/$GUILD/members/$USER" "{}" ;;
+	'list')
+		QUERY=$(filter-args query "$TEXT" 'limit,after')
+		dapi GET "/guilds/$GUILD/members$QUERY" " " ;;
+	'rename_me')
+		PAYLOAD=$(filter-args json "$TEXT" 'nick')
+		dapi PATCH "/guilds/$GUILD/members/@me/nick" "$PAYLOAD" ;;
+	esac ;;
+*)
+	echo "Usage: member {COMMAND} {JSON}" >&2
+	echo "Interacts with member endpoints"
+	echo ""
+	echo "Every command accepts a string of JSON, as stdout or arg"
+	echo "Avaliable commands with their respective JSON keys:"
+	echo ""
+	echo "get: {id} {guild}"
+	echo "    id: (snowflake) the id of the user"
+	echo "    guild: (snowflake) the id of the guild"
+	echo ""
+	echo "new: {id} {guild} {access_token} [nick] [roles] [mute] [deaf]"
+	echo "    id: (snowflake) the id of the user"
+	echo "    guild: (snowflake) the id of the guild"
+	echo "    access_token: (string) an oauth2 access token granted "
+	echo "        to the bot's application for the user you want to "
+	echo "        add to the guild "
+	echo "    nick: (string) value to set user's nickname to "
+	echo "    roles: (array) array of role ids the member is assigned"
+	echo "    mute: (boolean) whether the user is muted in voice channels"
+	echo "    deaf: (boolean) whether the user is deafened in voice channels"
+	echo ""
+	echo "edit: {id} {guild} {access_token} [nick] [roles] [mute] [deaf] [channel_id]"
+	echo "    id: (snowflake) the id of the user"
+	echo "    guild: (snowflake) the id of the guild"
+	echo "    nick: (string) value to set user's nickname to "
+	echo "    roles: (array) array of role ids the member is assigned"
+	echo "    mute: (boolean) whether the user is muted in voice channels"
+	echo "    deaf: (boolean) whether the user is deafened in voice channels"
+	echo "    channel_id: (snowflake|null) id of the voice channel to move user to"
+	echo ""
+	echo "del: {id} {guild}"
+	echo "    id: (snowflake) the id of the user"
+	echo "    guild: (snowflake) the id of the guild"
+	echo ""
+	echo "list: {guild} [limit] [after]"
+	echo "    guild: (snowflake) the id of the guild"
+	echo "    limit: (integer) max number of members to return (1-1000)"
+	echo "    after: (snowflake) the highest user id in the previous page"
+	echo ""
+	echo "rename_me: {guild} {nick}"
+	echo "    guild: (snowflake) the id of the guild"
+	echo "    nick: (string) value to set your nickname to"	
+	exit 1 ;;
+esac
