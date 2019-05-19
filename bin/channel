@@ -9,11 +9,11 @@ case $1 in
 		dapi GET "/channels/$CHANNEL" "{}" ;;
 	'new')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
-		PAYLOAD=$(echo "$TEXT" | jq 'del(.guild)')
+		PAYLOAD=$(filter-args json "$TEXT" 'name,type,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
 		dapi POST "/guilds/$GUILD/channels" "$PAYLOAD" ;;
 	'edit')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
-		PAYLOAD=$(echo "$TEXT" | jq 'del(.id)')
+		PAYLOAD=$(filter-args json "$TEXT" 'name,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
 		dapi PATCH "/channels/$CHANNEL" "$PAYLOAD" ;;
 	'del')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
@@ -28,7 +28,7 @@ case $1 in
 	'perm_edit')
 		OW=$(echo "$TEXT" | jq -r '.id')
 		CHANNEL=$(echo "$TEXT" | jq -r '.channel')
-		PAYLOAD=$(echo "$TEXT" | jq 'del(.id)' | jq 'del(.channel)')
+		PAYLOAD=$(filter-args json "$TEXT" 'allow,deny,type')
 		dapi PUT "/channels/$CHANNEL/permissions/$OW" "$PAYLOAD" ;;
 	'perm_delete')
 		OW=$(echo "$TEXT" | jq -r '.id')
@@ -46,7 +46,7 @@ case $1 in
 	echo "    id: (snowflake) the id of the channel"
 	echo ""
 	echo "new: {guild} {name} [type] [topic] [bitrate] [user_limit] "
-	echo "[rate_limit_per_user} [position] [permission_overwrites]"	
+	echo "[rate_limit_per_user] [position] [permission_overwrites]"	
 	echo "[parent_id] [nsfw]"
 	echo "    guild: (snowflake) the id of the target guild"
 	echo "    name: (string) channel name (2-100)"
@@ -62,19 +62,21 @@ case $1 in
 	echo "    parent_id: (snowflake): id of the parent category for a channel"
 	echo "    nsfw: (boolean) whether the channel is nsfw"
 	echo ""
-	echo "edit: {id} [content|embed]"
+	echo "edit: {id} {guild} {name} [topic] [bitrate] [user_limit] "
+	echo "[rate_limit_per_user] [position] [permission_overwrites]"	
+	echo "[parent_id] [nsfw]"
 	echo "    id: (snowflake) the id of the channel"
 	echo "    name: (string): channel name (2-100)"
-	echo "    position: (integer) the position of the channel"
 	echo "    topic: (string) channel topic (0-1024)"
-	echo "    nsfw: (boolean) whether the channel is nsfw"
-	echo "    rate_limit_per_user: (integer) amount of seconds a user has to wait before "
-        echo "        sending another message (0-21600)"
 	echo "    bitrate: (integer) the bitrate of the voice channel; (8000-96000, 128000 VIP) "
 	echo "    user_limit: (integer) the user limit of the voice channel (0-99) "
+	echo "    rate_limit_per_user: (integer) amount of seconds a user has to wait before "
+        echo "        sending another message (0-21600)"
+	echo "    position: (integer) the position of the channel"
 	echo "    permission_overwrites: (array) array of overwrite objects channel or "
 	echo "          category-specific permissions "
 	echo "    parent_id: (snowflake) id of the new parent category for a channel "
+	echo "    nsfw: (boolean) whether the channel is nsfw"
 	echo ""
 	echo "del: {id}"
 	echo "    id: (snowflake) the id of the channel"
