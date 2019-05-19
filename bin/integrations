@@ -9,10 +9,11 @@ case $1 in
 	'get')
 		dapi GET "/guilds/$GUILD/integrations" "{}" ;;
 	'new')
-		dapi POST "/guilds/$GUILD/integrations" "$TEXT" ;;
+		PAYLOAD=$(filter-args json "$TEXT" 'id,type')
+		dapi POST "/guilds/$GUILD/integrations" "$PAYLOAD" ;;
 	'edit')
 		INTG=$(echo "$TEXT"| jq -r ".id")
-		PAYLOAD=$(echo "$TEXT" | jq ".del(.id)")
+		PAYLOAD=$(filter-args json "$TEXT" 'expire_behavior,expire_grace_period,enable_emoticons')
 		dapi PATCH "/guilds/$GUILD/integrations/$INTG" "$PAYLOAD" ;;
 	'del')
 		INTG=$(echo "$TEXT"| jq -r ".id")
