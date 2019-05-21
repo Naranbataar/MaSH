@@ -1,13 +1,14 @@
-# MaSH - A minimalistic Discord toolset made in Bash
+# MaSH - A minimalistic Discord API wrapper made in Bash
 MaSh is a set of scripts made in Bash to make possible to  
 write Discord Bots on pure Shell Script
 
 ## Features
-- Unbloated, stable and minimalistic
+- Unbloated stable and minimalistic
 - Follows the Unix Philosophy
 - Universal, scripts of any language can   
 interact using the standart input/output
-- Implements the entire Discord API
+- Wraps the entire REST API
+- Efficient rate limiting [TODO]
 - Voice Support [TODO]
 
 ## Requirements
