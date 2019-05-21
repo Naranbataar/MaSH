@@ -1,10 +1,15 @@
 #!/bin/bash
 MASH_WS_PID="$$"
 export MASH_WS_PID
-[ -n $MASH_STATUS_DIR ] || MASH_STATUS_DIR = '.mash_tmp'
+[ -z $MASH_STATUS_DIR ] && MASH_STATUS_DIR='.mash_tmp'
+[ -f $MASH_STATUS_DIR ] || mkdir "$MASH_STATUS_DIR"
 
 PIPE="$MASH_STATUS_DIR/ws_pipe"
-[ -f $PIPE ] && echo "A instance of the connection script its already using '$MASH_STATUS_DIR'" ; echo 'If not, delete the ws_pipe' ; exit 1
+if [ -f $PIPE ]; then
+    echo "A instance of the connection script its already using '$MASH_STATUS_DIR'"
+    echo 'If not, delete the ws_pipe'
+    exit 1
+fi
 mkfifo $PIPE
 exec 3<> ${PIPE}
 ACKF="$MASH_STATUS_DIR/ws_lastack"
