@@ -1,6 +1,7 @@
 #!/bin/bash
 MASH_WS_PID="$$"
 export MASH_WS_PID
+[ -n $MASH_STATUS_DIR ] || MASH_STATUS_DIR = '.mash_tmp'
 
 PIPE="$MASH_STATUS_DIR/ws_pipe"
 [ -f $PIPE ] && echo "A instance of the connection script its already using '$MASH_STATUS_DIR'" ; echo 'If not, delete the ws_pipe' ; exit 1
