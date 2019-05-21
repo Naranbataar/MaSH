@@ -45,7 +45,7 @@ heartbeat(){
 		ACK=$(cat "$ACKF")
 
 		sleep "$WAIT"
-		if [ $LACK == $ACK ]; then
+		if [ "$LACK" == "$ACK" ]; then
 			pkill -9 $MASH_WS_PID
 			exit 1	
 		fi
@@ -55,7 +55,7 @@ heartbeat(){
 	done
 }
 
-while read PAYLOAD; do
+while read -r PAYLOAD; do
 	OP=$(echo "$PAYLOAD" | jq -r '.op')
 	DATA=$(echo "$PAYLOAD" | jq '.d')
 
