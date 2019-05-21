@@ -24,8 +24,10 @@ PATH="$PATH:$(realpath ./mash/bin):$(realpath ./mash/extra)"
 MASH_AUTH_TOKEN='TOKEN'; export MASH_AUTH_TOKEN
 MASH_AUTH_BOT=0; export MASH_AUTH_BOT
 
+PID=$$
+
 while read -r EVENT; do
-	jwait $$ 100
+	jwait $PID 100
 	prefix=">";
 	T=$(echo "$EVENT" | jq -r '.t')
 	D=$(echo "$EVENT" | jq -r '.d')
@@ -40,8 +42,7 @@ while read -r EVENT; do
 
 		case ${args[0]} in
 		'hi') message send "{\"channel\": \"$channel\", \"content\": \"hello\"}";;
-		esac
-		
+		esac	
 	fi
 done < <(ws-connect)
 ```
