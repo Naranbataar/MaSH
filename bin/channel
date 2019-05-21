@@ -17,7 +17,7 @@ case $1 in
 		dapi PATCH "/channels/$CHANNEL" "$PAYLOAD" ;;
 	'del')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
-		dapi DELETE "/channels/$CH" "{}" ;;
+		dapi DELETE "/channels/$CHANNEL" "{}" ;;
 	'list')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
 		dapi GET "/guilds/$GUILD/channels" "{}" ;;
