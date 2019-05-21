@@ -40,7 +40,7 @@ while read -r EVENT; do
 		content=${context[0]}; message=${context[1]}; author=${context[2]}
 		channel=${context[3]}; guild=${context[4]};
 
-		[[ "$content" != '>'* ]] && continue
+		[[ "$content" != "$prefix"* ]] && continue
 		[ "$author" == "580420373410086932" ] && continue
 
 		content=${content#$prefix}
