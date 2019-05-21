@@ -25,26 +25,31 @@ PATH="$PATH:$(realpath ./mash/bin):$(realpath ./mash/extra)"
 MASH_AUTH_TOKEN='TOKEN'; export MASH_AUTH_TOKEN
 MASH_AUTH_BOT=0; export MASH_AUTH_BOT
 
-PID=$$
-
 while read -r EVENT; do
-	jwait $PID 100
 	prefix=">";
 	T=$(echo "$EVENT" | jq -r '.t')
-	D=$(echo "$EVENT" | jq -r '.d')
-	if [ "$T" == "MESSAGE_CREATE" ]; then
-		content=$(echo "$D" | jq -r '.content')
-		channel=$(echo "$D" | jq -r '.channel_id')
-		author=$(echo "$D" | jq '.author' | jq -r '.id')
+	D=$(echo "$EVENT" | jq -cM '.d')
+	case $T in
+	'READY')
+		welcome="$(echo "$D" | jq -r '.user | .username,.id')"
+		echo -e "$welcome";;
+	'MESSAGE_CREATE')
+		context=$(echo "$D"| jq -r '.content,.id,(.author|.id),.channel_id,.guild_id')
+		mapfile -t context <<< "$context"
+		
+		content=${context[0]}; message=${context[1]}; author=${context[2]}
+		channel=${context[3]}; guild=${context[4]};
+
+		[[ "$content" != '>'* ]] && continue
 		[ "$author" == "580420373410086932" ] && continue
 
 		content=${content#$prefix}
 		IFS=' ' read -r -a args <<< "$content"
 
 		case ${args[0]} in
-		'hi') message send "{\"channel\": \"$channel\", \"content\": \"hello\"}";;
-		esac	
-	fi
+		'hi') message send "{\"channel\": \"$channel\", \"content\": \"hello\"}" >> /dev/null;;
+		esac ;;
+	esac
 done < <(ws-connect)
 ```
 
