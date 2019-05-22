@@ -1,0 +1,4 @@
+#!/bin/bash
+[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+exec 3<> "$MASH_STATUS_DIR/ws_pipe"
+echo "{\"op\": $1, \"d\": $TEXT}" | jq -cM >&3
