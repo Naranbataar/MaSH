@@ -19,7 +19,6 @@ SESF="$MASH_STATUS_DIR/ws_sessionid"
 
 clean(){
 	rm $PIPE
-	kill 0
 }
 trap clean EXIT
 
