@@ -25,14 +25,8 @@ clean(){
 }
 trap clean EXIT
 
-SENT=0
 gateway(){
-	MINIMAL=$(( $SENT + 500 ))
-	NOW=$(( $(date +%s%N)/1000000 ))
    	echo "{\"op\": $1, \"d\": $2}" | jq -cM >&3
-	if [ $NOW -lt $MINIMAL ]; then
-		sleep "$(( $MINIMAL - $NOW ))"
-	fi
 }
 
 heartbeat(){
