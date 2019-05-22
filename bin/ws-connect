@@ -40,8 +40,8 @@ heartbeat(){
 
 		sleep "$WAIT"
 		if [ "$LACK" == "$ACK" ]; then
-			pkill -9 $MASH_WS_PID
-			exit 1	
+			pkill -15 $MASH_WS_PID
+			exit 143
 		fi
 
 		sleep "$INTERVAL"
@@ -60,10 +60,10 @@ while read -r PAYLOAD; do
 	1)
 	echo "$(echo "$PAYLOAD" | jq '.d' | jq '.session_id')" > $SESF ;;
 	7)
-	exit 1 ;;
+	exit 143 ;;
 	9)
 	rm $SESF
-	exit 1 ;;
+	exit 143 ;;
 	10)
 	INTERVAL=$(echo "$DATA" | jq '.heartbeat_interval')
 	heartbeat "$INTERVAL" &
@@ -78,3 +78,4 @@ while read -r PAYLOAD; do
 	echo "$(( $(date +%s%N)/1000000 ))" > $ACKF ;;
 	esac	
 done < <(websocat -tnE "wss://gateway.discord.gg/?v=6&encoding=json" < $PIPE)
+exit 143
