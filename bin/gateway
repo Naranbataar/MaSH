@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ -z $MASH_STATUS_DIR ]; then
+	MASH_STATUS_DIR='.mash_tmp'
+	export MASH_STATUS_DIR
+fi
+[ -d $MASH_STATUS_DIR ] || mkdir "$MASH_STATUS_DIR"
+
+while true; do
+	ws-connect
+	CODE=$?
+	if [ $CODE != 143 ]; then
+		break
+	fi
+done
