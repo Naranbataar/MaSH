@@ -4,14 +4,31 @@
 [ -z $MASH_STATUS_DIR ] && MASH_STATUS_DIR='.mash_tmp'
 
 ROUTE=$(echo $2 | cut -d'/' -f-3 | tr '/' '_')
+LIMITG="$MASH_STATUS_DIR/global.lock"
 LIMITF="$MASH_STATUS_DIR/$ROUTE.lock"
 HEADERS=$(mktemp)
 MASH_HTTP_USERAGENT="DiscordBot (https://github.com/Naranbataar/MaSH/ 0.0)"
 
+while [ -f "$LIMITG" ]; do sleep 0.5; done
+
 exec 4>$LIMITF
 flock 4
 
-echo $TEXT | curl -s -X $1 -D $HEADERS -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -H "Content-Type: application/json" "https://discordapp.com/api$2" -d @-
+RESULT=$(echo $TEXT | curl -s -X $1 -D $HEADERS -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -H "Content-Type: application/json" "https://discordapp.com/api$2" -d @-)
+
+if [[ "$(cat "$HEADERS" | head -n 1)" == *'429'* ]]; then
+	retry=$( echo "$(echo "$RESULT" | jq -r '.retry_after') / 1000" | bc -l)
+	global=$( echo "$RESULT" | jq -r '.global' )
+	if [ "$global" == "true" ]; then
+	       touch "$LIMITG"; sleep "$retry"; rm -f "$LIMITG"
+	else
+	       sleep "$retry"
+	fi
+	echo "$($0 "$@")"
+	exit
+else
+	echo "$RESULT"
+fi
 
 REMAINING=$(grep -i -m 1 "x-ratelimit-remaining" "$HEADERS" | grep -o '[0-9]' | tr -d '\n')
 if [ -n "$REMAINING" ]; then
