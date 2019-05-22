@@ -1,4 +1,22 @@
+#!/bin/bash
 [[ -n "$3" ]] && TEXT=$3 || read TEXT
-MASH_HTTP_USERAGENT="DiscordBot (https://github.com/Naranbataar/MaSH/ 0.0)"
 [[ $MASH_AUTH_BOT == "1" ]] && BOT='Bot '
-echo $TEXT | curl -s -X $1 -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -H "Content-Type: application/json" "https://discordapp.com/api$2" -d @-
+[ -z $MASH_STATUS_DIR ] && MASH_STATUS_DIR='.mash_tmp'
+
+ROUTE=$(echo $2 | cut -d'/' -f-3 | tr '/' '_')
+LIMITF="$MASH_STATUS_DIR/$ROUTE.lock"
+HEADERS=$(mktemp)
+MASH_HTTP_USERAGENT="DiscordBot (https://github.com/Naranbataar/MaSH/ 0.0)"
+
+exec 4>$LIMITF
+flock 4
+
+echo $TEXT | curl -s -X $1 -D $HEADERS -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -H "Content-Type: application/json" "https://discordapp.com/api$2" -d @-
+
+REMAINING=$(grep -i -m 1 "x-ratelimit-remaining" "$HEADERS" | grep -o '[0-9]' | tr -d '\n')
+if [ -n "$REMAINING" ]; then
+    if [ $(( $REMAINING + 0 )) -lt 1 ]; then
+	RESET=$(grep -i -m 1 "x-ratelimit-reset" "$HEADERS" | grep -o '[0-9]' | tr -d '\n')
+	sleep $(( ($RESET - $(date '+%s')) ))
+    fi	
+fi
