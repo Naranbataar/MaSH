@@ -25,17 +25,13 @@ clean(){
 }
 trap clean EXIT
 
-gateway(){
-   	echo "{\"op\": $1, \"d\": $2}" | jq -cM >&3
-}
-
 heartbeat(){
 	LACK="0"
 	WAIT=15
 	INTERVAL=$(awk -v m=$m "BEGIN { print ($1 / 1000) - $WAIT }")
 	while true; do
 		SEQ=$(cat "$SEQF")
-		gateway 1 "$SEQ" >&3
+		ws-send 1 "$SEQ" >&3
 		ACK=$(cat "$ACKF")
 
 		sleep "$WAIT"
@@ -69,10 +65,10 @@ while read -r PAYLOAD; do
 	heartbeat "$INTERVAL" &
 
 	if [ -f "$SESF" ]; then
-		gateway 2 "{\"token\": \"$MASH_AUTH_TOKEN\", \"properties\": {\"\$os\": \"linux\",\"\$browser\": \"mash\",\"\$device\": \"mash\"}}"
+		ws-send 2 "{\"token\": \"$MASH_AUTH_TOKEN\", \"properties\": {\"\$os\": \"linux\",\"\$browser\": \"mash\",\"\$device\": \"mash\"}}"
 	else
 		SEQ=$(cat $SEQF); SES=$(cat $SESF)
-		gateway 6 "{\"token\": \"$MASH_AUTH_TOKEN\", \"session_id\": \"$SES\", \"seq\": $SEQ}"
+		ws-send 6 "{\"token\": \"$MASH_AUTH_TOKEN\", \"session_id\": \"$SES\", \"seq\": $SEQ}"
 	fi ;;
 	11)
 	echo "$(( $(date +%s%N)/1000000 ))" > $ACKF ;;
