@@ -58,7 +58,7 @@ while read -r EVENT; do
 	'READY') on-ready "$D" & ;;
 	'MESSAGE_CREATE') on-message "$D" & ;;
 	esac
-done < <(ws-connect)
+done < <(gateway)
 ```
 
 ## Environment
