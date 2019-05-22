@@ -1,7 +1,7 @@
 #!/bin/bash
 
 case $1 in
-'get'|'new'|'edit'|'del'|'list'|'pos_edit'|'perm_edit'|'perm_delete')
+'get'|'new'|'edit'|'del'|'list'|'dm_add'|'dm_remove'|'pos_edit'|'perm_edit'|'perm_delete')
 	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
 	case $1 in
 	'get')
@@ -21,6 +21,14 @@ case $1 in
 	'list')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
 		dapi GET "/guilds/$GUILD/channels" "{}" ;;
+	'dm_add')
+		CHANNEL=$(echo "$TEXT" | jq -r ".id");
+		USER=$(echo "$TEXT" | jq -r ".user");
+		dapi PUT "/channels/$CHANNEL/recipients/$USER" "{}" ;;
+	'dm_remove')
+		CHANNEL=$(echo "$TEXT" | jq -r ".id");
+		USER=$(echo "$TEXT" | jq -r ".user");
+		dapi DELETE "/channels/$CHANNEL/recipients/$USER" "{}" ;;
 	'pos_edit')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
 		PAYLOAD=$(echo "$TEXT" | jq '.data')
@@ -83,6 +91,14 @@ case $1 in
 	echo ""
 	echo "list: {guild}"
 	echo "    guild: (snowflake) the id of the guild"
+	echo ""
+	echo "dm_add: {id} {user}"
+	echo "    id: (snowflake) the id of the channel"
+	echo "    user: (snowflake) the id of the user"
+	echo ""
+	echo "dm_remove: {id} {user}"
+	echo "    id: (snowflake) the id of the channel"
+	echo "    user: (snowflake) the id of the user"
 	echo ""	
 	echo "pos_edit: {guild} {data}"
 	echo "    guild: (snowflake) the id of the target guild"
