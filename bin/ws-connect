@@ -3,14 +3,8 @@ MASH_WS_PID="$$"
 export MASH_WS_PID
 
 PIPE="$MASH_STATUS_DIR/ws_pipe"
-if [ -f $PIPE ]; then
-    echo "A instance of the connection script its already using '$MASH_STATUS_DIR'"
-    echo 'If not, delete the ws_pipe'
-    exit 1
-fi
-
-mkfifo $PIPE
-exec 3<> ${PIPE}
+[ -p $PIPE ] || mkfifo $PIPE
+exec 3<> $PIPE
 trap "rm $PIPE" EXIT
 
 ACKF="$MASH_STATUS_DIR/ws_lastack"
