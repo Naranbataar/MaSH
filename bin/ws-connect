@@ -8,19 +8,17 @@ if [ -f $PIPE ]; then
     echo 'If not, delete the ws_pipe'
     exit 1
 fi
+
 mkfifo $PIPE
 exec 3<> ${PIPE}
+trap "rm $PIPE" EXIT
+
 ACKF="$MASH_STATUS_DIR/ws_lastack"
 [ -f $ACKF ] || touch $ACKF
 SEQF="$MASH_STATUS_DIR/ws_seqf"
 [ -f $SEQF ] || touch $SEQF
 SESF="$MASH_STATUS_DIR/ws_sessionid"
 [ -f $SESF ] || touch $SESF
-
-clean(){
-	rm $PIPE
-}
-trap clean EXIT
 
 heartbeat(){
 	LACK="0"
