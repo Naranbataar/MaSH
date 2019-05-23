@@ -3,12 +3,12 @@ MaSh is a set of scripts made in Bash to make possible to
 write Discord Bots on pure Shell Script
 
 ## Features
-- Unbloated stable and minimalistic
+- Unbloated and minimalistic
 - Follows the Unix Philosophy
 - Universal, scripts of any language can   
 interact using the standart input/output
 - Wraps the entire REST API
-- Efficient rate limiting [TODO]
+- Efficient rate limiting
 - Voice Support [TODO]
 
 ## Requirements
@@ -20,7 +20,7 @@ interact using the standart input/output
 
 ```bash
 #!/bin/bash
-PATH="$PATH:$(realpath ./mash/bin):$(realpath ./mash/extra)"
+PATH="$PATH:$(realpath ./mash/bin)"
 
 MASH_AUTH_TOKEN='TOKEN'; export MASH_AUTH_TOKEN
 MASH_AUTH_BOT=0; export MASH_AUTH_BOT
