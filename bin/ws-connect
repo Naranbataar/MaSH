@@ -2,6 +2,8 @@
 MASH_WS_PID="$$"
 export MASH_WS_PID
 
+[ -z $MASH_STATUS_DIR ] && MASH_STATUS_DIR='.mash_tmp'
+
 PIPE="$MASH_STATUS_DIR/ws_pipe"
 [ -p $PIPE ] || mkfifo $PIPE
 exec 3<> $PIPE
