@@ -14,6 +14,8 @@ SEQF="$MASH_STATUS_DIR/ws_seqf"
 SESF="$MASH_STATUS_DIR/ws_sessionid"
 [ -f $SESF ] || touch $SESF
 
+ws-funnel &
+
 heartbeat(){
 	LACK="0"
 	WAIT=15
