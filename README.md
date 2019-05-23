@@ -25,6 +25,8 @@ PATH="$PATH:$(realpath ./mash/bin):$(realpath ./mash/extra)"
 MASH_AUTH_TOKEN='TOKEN'; export MASH_AUTH_TOKEN
 MASH_AUTH_BOT=0; export MASH_AUTH_BOT
 
+trap '$0 "$@"' SIGTERM
+
 on-ready(){ echo -e "$(echo "$1" | jq -r '.user | .username,.id')"; }
 
 on-message(){
@@ -58,7 +60,7 @@ while read -r EVENT; do
 	'READY') on-ready "$D" & ;;
 	'MESSAGE_CREATE') on-message "$D" & ;;
 	esac
-done < <(gateway)
+done < <(ws-connect)
 ```
 
 ## Environment
