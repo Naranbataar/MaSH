@@ -13,7 +13,7 @@ while [ -f "$LIMITG" ]; do sleep 0.5; done
 exec 4>$LIMITF
 flock 4
 
-read TEXT
+read -r TEXT
 if [ $1 == '@FILES' ]; then
 	N=0; FILES=$(echo "$FILES" | jq '.[]' | while read f; do echo -e " -F 'file$N=@$f'"; N=$(( $N+1 )); done)
 	RESULT=$(curl -s -X "POST" -D $HEADERS -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -F "payload_json=$TEXT" $FILES "https://discordapp.com/api$2")
