@@ -2,7 +2,7 @@
 
 case $1 in
 'get'|'new'|'edit'|'del'|'list')
-	[ -n "$2" ] && TEXT=$2 || read -r TEXT
+	read -r TEXT
 	GUILD=$(echo "$TEXT" | jq -r ".guild")
 	case $1 in
 	'get')
