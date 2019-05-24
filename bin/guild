@@ -6,28 +6,28 @@ case $1 in
 	GUILD=$(echo "$TEXT" | jq -r '.id')
 	case $1 in
 	'get')
-		dapi GET "/guilds/$GUILD" "{}" ;;
+		echo "{}" | dapi GET "/guilds/$GUILD" ;;
 	'new')
-		PAYLOAD=$(filter-args json "$TEXT" 'name,region,icon,verification_level,default_message_notifications,explicit_content_filter,roles,channels')
-		dapi POST "/guilds" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'name,region,icon,verification_level,default_message_notifications,explicit_content_filter,roles,channels')
+		echo "$PAYLOAD" | dapi POST "/guilds" ;;
 	'edit')
-		PAYLOAD=$(filter-args json "$TEXT" 'name,region,verification_level,default_message_notifications,explicit_content_filter,afk_channel_id,afk_timeout,icon,owner_id,splash,system_channel_id')
-		dapi PATCH "/guilds/$GUILD" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'name,region,verification_level,default_message_notifications,explicit_content_filter,afk_channel_id,afk_timeout,icon,owner_id,splash,system_channel_id')
+		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD" ;;
 	'del')
-		dapi DELETE "/guilds/$GUILD" "{}" ;;
+		echo "{}" | dapi DELETE "/guilds/$GUILD" ;;
 	'embed_get')
-		dapi GET "/guilds/$GUILD/embed" "{}" ;;
+		echo "{}" | dapi GET "/guilds/$GUILD/embed" ;;
 	'embed_edit')
-		PAYLOAD=$(filter-args json "$TEXT" 'enabled,channel_id')
-		dapi PATCH "/guilds/$GUILD/embed" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'enabled,channel_id')
+		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/embed" ;;
 	'audit_log')
-		QUERY=$(filter-args query "$TEXT" 'user_id,action_type,before,limit')
-		dapi GET "/guilds/$GUILD/audit-logs$QUERY" " " ;;
+		QUERY=$(echo "$TEXT" | filter-args query 'user_id,action_type,before,limit')
+		echo " " | dapi GET "/guilds/$GUILD/audit-logs$QUERY" ;;
 	'vanity_url')
-		dapi GET "/guilds/$GUILD/vanity-url" "{}" ;;
+		echo "{}" | dapi GET "/guilds/$GUILD/vanity-url" ;;
 	'widget')
-		QUERY=$(filter-args query "$TEXT" 'style')
-		dapi GET "/guilds/$GUILD/widget.png$QUERY" " " ;;
+		QUERY=$(echo "$TEXT" | filter-args query 'style')
+		echo " " | dapi GET "/guilds/$GUILD/widget.png$QUERY" ;;
 	esac ;;
 *)
 	echo "Usage: guild {COMMAND} {JSON}" >&2
