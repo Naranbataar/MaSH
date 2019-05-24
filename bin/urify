@@ -1,5 +1,10 @@
 #!/bin/bash
-[[ -z "$1" ]] && echo "Opens the filepath on a JSON value, and converts it to a URI scheme. Accept a JSON string on STDIN"; echo "Usage: urify {KEY}"; exit 1
+if [ -z "$1" ]; then
+	echo "Usage: urify {KEY}"
+	echo "Opens the filepath on a JSON value, and converts it to a URI scheme. Accept a JSON string on STDIN"
+	exit 1
+fi
+
 read -r TEXT
 
 IMAGE=$(echo "$TEXT" | jq -r ".$1")
