@@ -2,25 +2,24 @@
 
 case $1 in
 'get'|'new'|'edit'|'del'|'list')
-	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	[ -n "$2" ] && TEXT=$2 || read -r TEXT
 	GUILD=$(echo "$TEXT" | jq -r ".guild")
-	TEXT=$(echo "$TEXT" | jq 'del(.guild)')
 	case $1 in
 	'get')
 		EMOJI=$(echo "$TEXT" | jq -r ".id")
-		dapi GET "/guilds/$GUILD/emojis/$EMOJI" "{}" ;;
+		echo "{}" | dapi GET "/guilds/$GUILD/emojis/$EMOJI" ;;
 	'new')
-		PAYLOAD=$(filter-args json "$TEXT" 'name,image,roles')
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'name,image,roles')
 		echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/emojis" ;;
 	'edit')
 		EMOJI=$(echo "$TEXT" | jq -r ".id")
-		PAYLOAD=$(filter-args json "$TEXT" 'name,roles')
-		dapi PATCH "/guilds/$GUILD/emojis/$EMOJI" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'name,roles')
+		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/emojis/$EMOJI" ;;
 	'del')
 		EMOJI=$(echo "$TEXT" | jq -r ".id")
-		dapi DELETE "/guilds/$GUILD/emojis/$EMOJI" "{}" ;;
+		echo "{}" | dapi DELETE "/guilds/$GUILD/emojis/$EMOJI" ;;
 	'list')
-		dapi GET "/guilds/$GUILD/emojis" "{}" ;;
+		echo "{}" | dapi GET "/guilds/$GUILD/emojis" ;;
 	esac ;;
 *)
 	echo "Usage: emoji {COMMAND} {JSON}" >&2
