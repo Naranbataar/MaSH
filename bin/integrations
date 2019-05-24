@@ -2,7 +2,7 @@
 
 case $1 in
 'get'|'new'|'edit'|'del'|'sync')
-	[ -n "$2" ] && TEXT=$2 || read -r TEXT
+	read -r TEXT
 	GUILD=$(echo "$TEXT" | jq -r ".guild");
 	case $1 in
 	'get')
@@ -22,10 +22,10 @@ case $1 in
 		echo "{}" | dapi POST "/guilds/$GUILD/integrations/$INTG/sync" ;;
 	esac ;;
 *)
-	echo "Usage: integration {COMMAND} {JSON}" >&2
+	echo "Usage: integration {COMMAND}" >&2
 	echo "Interacts with guild integration endpoints"
 	echo ""
-	echo "Every command accepts a string of JSON, as stdout or arg"
+	echo "Every command accept a string of JSON on STDIN"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "get: {guild} "
