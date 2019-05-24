@@ -2,7 +2,7 @@
 
 case $1 in
 'get'|'new'|'edit'|'del'|'embed_get'|'embed_edit'|'audit_log'|'vanity_url'|'widget')
-	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	[ -n "$2" ] && TEXT=$2 || read -r TEXT
 	GUILD=$(echo "$TEXT" | jq -r '.id')
 	case $1 in
 	'get')
