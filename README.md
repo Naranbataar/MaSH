@@ -22,7 +22,7 @@ interact using the standart input/output
 PATH="$PATH:$(realpath ./mash/bin)"
 
 MASH_AUTH_TOKEN='TOKEN'; export MASH_AUTH_TOKEN
-MASH_AUTH_BOT=0; export MASH_AUTH_BOT
+MASH_AUTH_BOT=1; export MASH_AUTH_BOT
 
 trap '$0 "$@"' SIGTERM
 
@@ -72,4 +72,5 @@ their pipes and statuses
 - Voice Support
 - Reduce external calls
 - Stability tests
+- Command helper
 
