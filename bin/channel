@@ -2,18 +2,18 @@
 
 case $1 in
 'get'|'new'|'edit'|'del'|'list'|'dm_add'|'dm_remove'|'pos_edit'|'perm_edit'|'perm_delete')
-	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	[ -n "$2" ] && TEXT=$2 || read TEXT
 	case $1 in
 	'get')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
 		dapi GET "/channels/$CHANNEL" "{}" ;;
 	'new')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
-		PAYLOAD=$(filter-args json "$TEXT" 'name,type,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'name,type,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
 		dapi POST "/guilds/$GUILD/channels" "$PAYLOAD" ;;
 	'edit')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
-		PAYLOAD=$(filter-args json "$TEXT" 'name,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'name,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
 		dapi PATCH "/channels/$CHANNEL" "$PAYLOAD" ;;
 	'del')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
@@ -36,7 +36,7 @@ case $1 in
 	'perm_edit')
 		OW=$(echo "$TEXT" | jq -r '.id')
 		CHANNEL=$(echo "$TEXT" | jq -r '.channel')
-		PAYLOAD=$(filter-args json "$TEXT" 'allow,deny,type')
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'allow,deny,type')
 		dapi PUT "/channels/$CHANNEL/permissions/$OW" "$PAYLOAD" ;;
 	'perm_delete')
 		OW=$(echo "$TEXT" | jq -r '.id')
