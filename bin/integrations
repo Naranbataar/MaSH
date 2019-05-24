@@ -6,7 +6,7 @@ case $1 in
 	GUILD=$(echo "$TEXT" | jq -r ".guild");
 	case $1 in
 	'get')
-		echo "{}" | dapi GET "/guilds/$GUILD/integrations" ;;
+		echo " " | dapi GET "/guilds/$GUILD/integrations" ;;
 	'new')
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'id,type')
 		echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/integrations" ;;
@@ -16,10 +16,10 @@ case $1 in
 		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/integrations/$INTG" ;;
 	'del')
 		INTG=$(echo "$TEXT"| jq -r ".id")
-		echo "{}" | dapi DELETE "/guilds/$GUILD/integrations/$INTG" ;;
+		echo " " | dapi DELETE "/guilds/$GUILD/integrations/$INTG" ;;
 	'sync')
 		INTG=$(echo "$TEXT"| jq -r ".id")
-		echo "{}" | dapi POST "/guilds/$GUILD/integrations/$INTG/sync" ;;
+		echo " " | dapi POST "/guilds/$GUILD/integrations/$INTG/sync" ;;
 	esac ;;
 *)
 	echo "Usage: integration {COMMAND}" >&2
