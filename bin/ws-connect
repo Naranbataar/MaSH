@@ -39,8 +39,7 @@ heartbeat(){
 	done
 }
 
-while read -r PAYLOAD; do
-	echo "$PAYLOAD"
+while read PAYLOAD; do
 	OP=$(echo "$PAYLOAD" | jq -r '.op')
 	DATA=$(echo "$PAYLOAD" | jq -cM '.d')
 
