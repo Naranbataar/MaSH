@@ -8,6 +8,8 @@ export MASH_WS_PID
 PIPE="$MASH_STATUS_DIR/ws_pipe"
 rm -f $PIPE; mkfifo $PIPE
 exec 3<> $PIPE
+LOGF="$MASH_STATUS_DIR/ws_log"
+rm -f $LOGF; touch $LOGF
 
 ACKF="$MASH_STATUS_DIR/ws_lastack"
 [ -f $ACKF ] || touch $ACKF
@@ -50,6 +52,7 @@ while read -r PAYLOAD; do
 	if [ $(echo "$PAYLOAD" | jq -r '.t') == 'READY' ]; then
 		echo "$(echo "$DATA" | jq -r '.session_id')" > $SESF
 	fi
+	echo "$PAYLOAD" >> $LOGF
 	echo "$PAYLOAD" ;;	
 	7)
 	$0 $@; exit ;;
