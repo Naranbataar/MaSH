@@ -2,30 +2,29 @@
 
 case $1 in
 'get'|'new'|'edit'|'del'|'list'|'my_nick_edit')
-	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
-	GUILD=$(echo "$TEXT" | jq -r ".guild");
-	TEXT=$(echo "$TEXT" | jq "del(.guild)")
+	[ -n "$2" ] && TEXT=$2 || read -r TEXT
+	GUILD=$(echo "$TEXT" | jq -r ".guild")
 	case $1 in
 	'get')
 		USER=$(echo "$TEXT" | jq -r ".id")
-		dapi GET "/guilds/$GUILD/members/$USER" "{}" ;;
+		echo "{}" | dapi GET "/guilds/$GUILD/members/$USER" ;;
 	'new')
 		USER=$(echo "$TEXT" | jq -r ".id")
-		PAYLOAD=$(filter-args json "$TEXT" 'access_token,nick,roles,mute,deaf')
-		dapi PUT "/guilds/$GUILD/members/$USER" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'access_token,nick,roles,mute,deaf')
+		echo "$PAYLOAD" | dapi PUT "/guilds/$GUILD/members/$USER" ;;
 	'edit')
 		USER=$(echo "$TEXT" | jq -r ".id")
-		PAYLOAD=$(filter-args json "$TEXT" 'nick,roles,mute,deaf,channel_id')
-		dapi PATCH "/guilds/$GUILD/members/$USER" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'nick,roles,mute,deaf,channel_id')
+		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/members/$USER" ;;
 	'del')
 		USER=$(echo "$TEXT" | jq -r ".id")
-		dapi DELETE "/guild/$GUILD/members/$USER" "{}" ;;
+		echo "{}" | dapi DELETE "/guild/$GUILD/members/$USER" ;;
 	'list')
-		QUERY=$(filter-args query "$TEXT" 'limit,after')
-		dapi GET "/guilds/$GUILD/members$QUERY" " " ;;
+		QUERY=$(echo "$TEXT" | filter-args query 'limit,after')
+		echo " " | dapi GET "/guilds/$GUILD/members$QUERY" ;;
 	'rename_me')
-		PAYLOAD=$(filter-args json "$TEXT" 'nick')
-		dapi PATCH "/guilds/$GUILD/members/@me/nick" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'nick')
+		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/members/@me/nick" ;;
 	esac ;;
 *)
 	echo "Usage: member {COMMAND} {JSON}" >&2
