@@ -43,7 +43,7 @@ on-message(){
 	IFS=' ' read -r -a args <<< "$content"
 
 	case ${args[0]} in
-	'hi') message send "{\"channel\": \"$channel\", \"content\": \"hello\"}" >> /dev/null;;
+	'hi') echo "{\"channel\": \"$channel\", \"content\": \"hello\"}" | message send >> /dev/null;;
 	esac
 }
 
