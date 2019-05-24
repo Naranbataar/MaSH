@@ -6,10 +6,8 @@ export MASH_WS_PID
 [ -d $MASH_STATUS_DIR ] || mkdir "$MASH_STATUS_DIR"
 
 PIPE="$MASH_STATUS_DIR/ws_pipe"
-[ -p $PIPE ] && rm -f $PIPE
-mkfifo $PIPE
+rm -f $PIPE; mkfifo $PIPE
 exec 3<> $PIPE
-trap "rm -f $PIPE" EXIT
 
 ACKF="$MASH_STATUS_DIR/ws_lastack"
 [ -f $ACKF ] || touch $ACKF
@@ -27,13 +25,14 @@ heartbeat(){
 	INTERVAL=$(awk -v m=$m "BEGIN { print ($1 / 1000) - $WAIT }")
 	while true; do
 		SEQ=$(cat "$SEQF")
+		SEQ=${SEQ:-0}
 		echo "$SEQ" | ws-send 1
 		ACK=$(cat "$ACKF")
 
 		sleep "$WAIT"
 		if [ "$LACK" == "$ACK" ]; then
-			pkill -15 $MASH_WS_PID
-			exit 143
+			pkill -9 $MASH_WS_PID
+			$0 $@; exit
 		fi
 
 		sleep "$INTERVAL"
@@ -48,26 +47,27 @@ while read -r PAYLOAD; do
 	case $OP in
 	0)
 	echo "$(echo "$PAYLOAD" | jq -r '.s')" > $SEQF
+	if [ $(echo "$PAYLOAD" | jq -r '.t') == 'READY' ]; then
+		echo "$(echo "$DATA" | jq -r '.session_id')" > $SESF
+	fi
 	echo "$PAYLOAD" ;;	
-	1)
-	echo "$(echo "$DATA" | jq -r '.session_id')" > $SESF ;;
 	7)
-	exit 143 ;;
+	$0 $@; exit ;;
 	9)
 	rm -f $SESF
-	exit 143 ;;
+	$0 $@; exit ;;
 	10)
 	INTERVAL=$(echo "$DATA" | jq -r '.heartbeat_interval')
 	heartbeat "$INTERVAL" &
 
-	if [ -f "$SESF" ]; then
+	[ -f "$SESF" ] && SES=$(cat $SESF)
+	if [ -z "$SES" ]; then
 		echo "{\"token\": \"$MASH_AUTH_TOKEN\", \"properties\": {\"\$os\": \"linux\",\"\$browser\": \"mash\",\"\$device\": \"mash\"}}" | ws-send 2
 	else
-		SEQ=$(cat $SEQF); SES=$(cat $SESF)
+		SEQ=$(cat $SEQF); SEQ=${SEQ:-0}
 		echo "{\"token\": \"$MASH_AUTH_TOKEN\", \"session_id\": \"$SES\", \"seq\": $SEQ}" | ws-send 6
 	fi ;;
 	11)
 	echo "$(( $(date +%s%N)/1000000 ))" > $ACKF ;;
 	esac	
 done < <(websocat -tnE "wss://gateway.discord.gg/?v=6&encoding=json" < $PIPE)
-exit 143
