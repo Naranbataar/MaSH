@@ -2,9 +2,8 @@
 
 case $1 in
 'type'|'get'|'send'|'edit'|'delete'|'pin'|'unpin'|'pins'|'bulk_get'|'bulk_delete')
-	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	[ -n "$2" ] && TEXT=$2 || read -r TEXT
 	CHANNEL=$(echo "$TEXT" | jq -r '.channel')
-	TEXT=$(echo "$TEXT" | jq 'del(.channel)')
 	case $1 in
 	'type')
 		dapi POST "/channels/$CHANNEL/typing" "{}" ;;
@@ -12,18 +11,17 @@ case $1 in
 		MSG=$(echo "$TEXT" | jq -r '.id')
 		dapi GET "/channels/$CHANNEL/messages/$MSG" "{}" ;;
 	'send')
-		FILES=$(echo "$TEXT" | jq '.files//empty')
-		PAYLOAD=$(filter-args json "$TEXT" 'content,embed,nonce,tts')
+		FILES=$(echo "$TEXT" | jq -cM '.files//empty')
+		echo "$FILES"
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'content,embed,nonce,tts')
 		if [[ -z $FILES ]]; then
 			dapi POST "/channels/$CHANNEL/messages" "$PAYLOAD"
 		else
-			n=0
-			FILES=$(echo "$FILES" | jq '.[]' | while read f; do echo -e " -F 'file$n=@$f'"; n=$(( $n+1 )); done)
-			curl -s -X "POST" -A "$MASH_USERAGENT" -H "Authorization: Bot $MASH_TOKEN" -F "payload_json=$PAYLOAD" $FILES "https://discordapp.com/api/channels/$CHANNEL/messages"
+			dapi @FILES "/channels/$CHANNEL/messages" "$PAYLOAD" "$FILES"
 		fi ;;
 	'edit')
 		MSG=$(echo "$TEXT" | jq -r ".id")
-		PAYLOAD=$(filter-args json "$TEXT" 'content,embed')
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'content,embed')
 		dapi PATCH "/channels/$CHANNEL/messages/$MSG" "$PAYLOAD" ;;
 	'delete')
 		MSG=$(echo "$TEXT" | jq -r ".id")
@@ -37,10 +35,10 @@ case $1 in
 	'pins')
 		dapi GET "/channels/$CHANNEL/pins" "{}";;
 	'bulk_get')
-		QUERY=$(filter-args query "$TEXT" 'before,after,around,limit')
+		QUERY=$(echo "$TEXT" | filter-args query 'before,after,around,limit')
 		dapi GET "/channels/$CHANNEL/messages$QUERY" " " ;;
 	'bulk_delete')
-		PAYLOAD=$(filter-args json "$TEXT" 'messages')
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'messages')
 		dapi POST "/channels/$CHANNEL/messages/bulk-delete" "$PAYLOAD" ;;
 	esac ;;
 *)
