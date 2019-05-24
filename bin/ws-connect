@@ -6,7 +6,8 @@ export MASH_WS_PID
 [ -d $MASH_STATUS_DIR ] || mkdir "$MASH_STATUS_DIR"
 
 PIPE="$MASH_STATUS_DIR/ws_pipe"
-[ -p $PIPE ] || mkfifo $PIPE
+[ -p $PIPE ] && rm -f $PIPE
+mkfifo $PIPE
 exec 3<> $PIPE
 trap "rm -f $PIPE" EXIT
 
@@ -53,7 +54,7 @@ while read -r PAYLOAD; do
 	7)
 	exit 143 ;;
 	9)
-	rm $SESF
+	rm -f $SESF
 	exit 143 ;;
 	10)
 	INTERVAL=$(echo "$DATA" | jq -r '.heartbeat_interval')
