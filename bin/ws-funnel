@@ -8,10 +8,10 @@ exec 3<> $PIPE
 FUNNEL="$MASH_STATUS_DIR/ws_funnel"
 [ -p $FUNNEL ] || mkfifo $FUNNEL
 exec 4<> $FUNNEL
-trap "rm $FUNNEL" EXIT
+trap "rm -f $FUNNEL" EXIT
 
 TN=$(echo "$T/$N" | bc -l)
-while read PAYLOAD; do
+while read -r PAYLOAD; do
 	now=$(date '+%s')
 	SN=$(echo "$([ "$(echo "$S==0" | bc -l)" == "1" ] && echo "$now" || echo "$SN") + $TN" | bc -l)
 	if [ "$(echo "$SN < $now" | bc -l)" == "1" ]; then
