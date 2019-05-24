@@ -1,5 +1,4 @@
 #!/bin/bash
-[[ -n "$3" ]] && TEXT=$3 || read TEXT
 [[ $MASH_AUTH_BOT == "1" ]] && BOT='Bot '
 [ -z $MASH_STATUS_DIR ] && MASH_STATUS_DIR='.mash_tmp'
 
@@ -15,11 +14,12 @@ exec 4>$LIMITF
 flock 4
 
 if [ $1 == '@FILES' ]; then
-	PAYLOAD=${3:-'{}'}
+	[[ -n "$4" ]] && TEXT=$4 || read TEXT
 	N=0; FILES=$(echo "$4" | jq '.[]' | while read f; do echo -e " -F 'file$N=@$f'"; N=$(( $N+1 )); done)
-	RESULT=$(echo $TEXT | curl -s -X "POST" -D $HEADERS -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -F "payload_json=$PAYLOAD" $FILES "https://discordapp.com/api$2")
+	RESULT=$(echo $TEXT | curl -v -X "POST" -D $HEADERS -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -F "payload_json=$PAYLOAD" $FILES "https://discordapp.com/api$2")
 else
-	RESULT=$(echo $TEXT | curl -s -X $1 -D $HEADERS -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -H "Content-Type: application/json" "https://discordapp.com/api$2" -d @-)
+	[[ -n "$3" ]] && TEXT=$3 || read TEXT
+	RESULT=$(echo $TEXT | curl -v -X $1 -D $HEADERS -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -H "Content-Type: application/json" "https://discordapp.com/api$2" -d @-)
 fi
 
 if [[ "$(cat "$HEADERS" | head -n 1)" == *'429'* ]]; then
