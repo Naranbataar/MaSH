@@ -24,7 +24,7 @@ heartbeat(){
 	INTERVAL=$(awk -v m=$m "BEGIN { print ($1 / 1000) - $WAIT }")
 	while true; do
 		SEQ=$(cat "$SEQF")
-		ws-send 1 "$SEQ" >&3
+		echo "$SEQ" | ws-send 1
 		ACK=$(cat "$ACKF")
 
 		sleep "$WAIT"
@@ -58,10 +58,10 @@ while read -r PAYLOAD; do
 	heartbeat "$INTERVAL" &
 
 	if [ -f "$SESF" ]; then
-		ws-send 2 "{\"token\": \"$MASH_AUTH_TOKEN\", \"properties\": {\"\$os\": \"linux\",\"\$browser\": \"mash\",\"\$device\": \"mash\"}}"
+		echo "{\"token\": \"$MASH_AUTH_TOKEN\", \"properties\": {\"\$os\": \"linux\",\"\$browser\": \"mash\",\"\$device\": \"mash\"}}" | ws-send 2
 	else
 		SEQ=$(cat $SEQF); SES=$(cat $SESF)
-		ws-send 6 "{\"token\": \"$MASH_AUTH_TOKEN\", \"session_id\": \"$SES\", \"seq\": $SEQ}"
+		echo "{\"token\": \"$MASH_AUTH_TOKEN\", \"session_id\": \"$SES\", \"seq\": $SEQ}" | ws-send 6
 	fi ;;
 	11)
 	echo "$(( $(date +%s%N)/1000000 ))" > $ACKF ;;
