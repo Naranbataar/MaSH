@@ -7,7 +7,7 @@ case $1 in
 	case $1 in
 	'get')
 		EMOJI=$(echo "$TEXT" | jq -r ".id")
-		echo "{}" | dapi GET "/guilds/$GUILD/emojis/$EMOJI" ;;
+		echo " " | dapi GET "/guilds/$GUILD/emojis/$EMOJI" ;;
 	'new')
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'name,image,roles')
 		echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/emojis" ;;
@@ -17,9 +17,9 @@ case $1 in
 		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/emojis/$EMOJI" ;;
 	'del')
 		EMOJI=$(echo "$TEXT" | jq -r ".id")
-		echo "{}" | dapi DELETE "/guilds/$GUILD/emojis/$EMOJI" ;;
+		echo " " | dapi DELETE "/guilds/$GUILD/emojis/$EMOJI" ;;
 	'list')
-		echo "{}" | dapi GET "/guilds/$GUILD/emojis" ;;
+		echo " " | dapi GET "/guilds/$GUILD/emojis" ;;
 	esac ;;
 *)
 	echo "Usage: emoji {COMMAND}" >&2
