@@ -2,46 +2,46 @@
 
 case $1 in
 'get'|'new'|'edit'|'del'|'list'|'dm_add'|'dm_remove'|'pos_edit'|'perm_edit'|'perm_delete')
-	[ -n "$2" ] && TEXT=$2 || read TEXT
+	[ -n "$2" ] && TEXT=$2 || read -r TEXT
 	case $1 in
 	'get')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
-		dapi GET "/channels/$CHANNEL" "{}" ;;
+		echo "{}" | dapi GET "/channels/$CHANNEL" ;;
 	'new')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'name,type,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
-		dapi POST "/guilds/$GUILD/channels" "$PAYLOAD" ;;
+		echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/channels" ;;
 	'edit')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'name,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
-		dapi PATCH "/channels/$CHANNEL" "$PAYLOAD" ;;
+		echo "$PAYLOAD" | dapi PATCH "/channels/$CHANNEL" ;;
 	'del')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
-		dapi DELETE "/channels/$CHANNEL" "{}" ;;
+		echo "{}" | dapi DELETE "/channels/$CHANNEL" ;;
 	'list')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
-		dapi GET "/guilds/$GUILD/channels" "{}" ;;
+		echo "{}" | dapi GET "/guilds/$GUILD/channels" ;;
 	'dm_add')
 		CHANNEL=$(echo "$TEXT" | jq -r ".id");
 		USER=$(echo "$TEXT" | jq -r ".user");
-		dapi PUT "/channels/$CHANNEL/recipients/$USER" "{}" ;;
+		echo "{}" | dapi PUT "/channels/$CHANNEL/recipients/$USER" ;;
 	'dm_remove')
 		CHANNEL=$(echo "$TEXT" | jq -r ".id");
 		USER=$(echo "$TEXT" | jq -r ".user");
-		dapi DELETE "/channels/$CHANNEL/recipients/$USER" "{}" ;;
+		echo "{}" | dapi DELETE "/channels/$CHANNEL/recipients/$USER" ;;
 	'pos_edit')
 		GUILD=$(echo "$TEXT" | jq -r '.guild')
 		PAYLOAD=$(echo "$TEXT" | jq '.data')
-		dapi PATCH "/guilds/$GUILD/channels" "$PAYLOAD" ;;
+		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/channels" ;;
 	'perm_edit')
 		OW=$(echo "$TEXT" | jq -r '.id')
 		CHANNEL=$(echo "$TEXT" | jq -r '.channel')
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'allow,deny,type')
-		dapi PUT "/channels/$CHANNEL/permissions/$OW" "$PAYLOAD" ;;
+		echo "$PAYLOAD" | dapi PUT "/channels/$CHANNEL/permissions/$OW" ;;
 	'perm_delete')
 		OW=$(echo "$TEXT" | jq -r '.id')
 		CHANNEL=$(echo "$TEXT" | jq -r '.channel')
-		dapi DELETE "/channels/$CHANNEL/permissions/$OW" "{}" ;;
+		echo "{}" | dapi DELETE "/channels/$CHANNEL/permissions/$OW" ;;
 	esac ;;
 *)
 	echo "Usage: channel {COMMAND} {JSON}" >&2
