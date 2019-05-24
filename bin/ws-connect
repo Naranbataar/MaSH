@@ -3,6 +3,7 @@ MASH_WS_PID="$$"
 export MASH_WS_PID
 
 [ -z $MASH_STATUS_DIR ] && MASH_STATUS_DIR='.mash_tmp'
+[ -d $MASH_STATUS_DIR ] || mkdir "$MASH_STATUS_DIR"
 
 PIPE="$MASH_STATUS_DIR/ws_pipe"
 [ -p $PIPE ] || mkfifo $PIPE
@@ -39,22 +40,23 @@ heartbeat(){
 }
 
 while read -r PAYLOAD; do
+	echo "$PAYLOAD"
 	OP=$(echo "$PAYLOAD" | jq -r '.op')
-	DATA=$(echo "$PAYLOAD" | jq '.d')
+	DATA=$(echo "$PAYLOAD" | jq -cM '.d')
 
 	case $OP in
 	0)
 	echo "$(echo "$PAYLOAD" | jq -r '.s')" > $SEQF
 	echo "$PAYLOAD" ;;	
 	1)
-	echo "$(echo "$PAYLOAD" | jq '.d' | jq '.session_id')" > $SESF ;;
+	echo "$(echo "$DATA" | jq -r '.session_id')" > $SESF ;;
 	7)
 	exit 143 ;;
 	9)
 	rm $SESF
 	exit 143 ;;
 	10)
-	INTERVAL=$(echo "$DATA" | jq '.heartbeat_interval')
+	INTERVAL=$(echo "$DATA" | jq -r '.heartbeat_interval')
 	heartbeat "$INTERVAL" &
 
 	if [ -f "$SESF" ]; then
