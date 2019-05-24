@@ -25,7 +25,7 @@ case $1 in
 	echo "Usage: emoji {COMMAND} {JSON}" >&2
 	echo "Interacts with emoji endpoints"
 	echo ""
-	echo "Every command accepts a string of JSON, as stdout or arg"
+	echo "Every command accept a string of JSON on STDIN"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "get: {id} {guild}"
