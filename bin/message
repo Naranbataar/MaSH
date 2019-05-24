@@ -2,44 +2,43 @@
 
 case $1 in
 'type'|'get'|'send'|'edit'|'delete'|'pin'|'unpin'|'pins'|'bulk_get'|'bulk_delete')
-	[ -n "$2" ] && TEXT=$2 || read -r TEXT
+	read -r TEXT
 	CHANNEL=$(echo "$TEXT" | jq -r '.channel')
 	case $1 in
 	'type')
-		dapi POST "/channels/$CHANNEL/typing" "{}" ;;
+		echo "{}" | dapi POST "/channels/$CHANNEL/typing" ;;
 	'get')
 		MSG=$(echo "$TEXT" | jq -r '.id')
-		dapi GET "/channels/$CHANNEL/messages/$MSG" "{}" ;;
+		echo "{}" | dapi GET "/channels/$CHANNEL/messages/$MSG" ;;
 	'send')
 		FILES=$(echo "$TEXT" | jq -cM '.files//empty')
-		echo "$FILES"
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'content,embed,nonce,tts')
 		if [[ -z $FILES ]]; then
-			dapi POST "/channels/$CHANNEL/messages" "$PAYLOAD"
+			echo "$PAYLOAD" | dapi POST "/channels/$CHANNEL/messages"
 		else
-			dapi @FILES "/channels/$CHANNEL/messages" "$PAYLOAD" "$FILES"
+			echo "$PAYLOAD" | dapi @FILES "/channels/$CHANNEL/messages" "$FILES"
 		fi ;;
 	'edit')
 		MSG=$(echo "$TEXT" | jq -r ".id")
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'content,embed')
-		dapi PATCH "/channels/$CHANNEL/messages/$MSG" "$PAYLOAD" ;;
+		echo "$PAYLOAD" | dapi PATCH "/channels/$CHANNEL/messages/$MSG" ;;
 	'delete')
 		MSG=$(echo "$TEXT" | jq -r ".id")
-		dapi DELETE "/channels/$CHANNEL/messages/$MSG" "{}" ;;
+		echo "{}" | dapi DELETE "/channels/$CHANNEL/messages/$MSG" ;;
 	'pin')
 		MSG=$(echo "$TEXT" | jq -r ".id")
-		dapi PUT "/channels/$CHANNEL/pins/$MSG" "{}";;
+		echo "{}" | dapi PUT "/channels/$CHANNEL/pins/$MSG" ;;
 	'unpin')
 		MSG=$(echo "$TEXT" | jq -r ".id")
-		dapi DELETE "/channels/$CHANNEL/pins/$MSG" "{}";;
+		echo "{}" | dapi DELETE "/channels/$CHANNEL/pins/$MSG" ;;
 	'pins')
-		dapi GET "/channels/$CHANNEL/pins" "{}";;
+		echo "{}" | dapi GET "/channels/$CHANNEL/pins" ;;
 	'bulk_get')
 		QUERY=$(echo "$TEXT" | filter-args query 'before,after,around,limit')
-		dapi GET "/channels/$CHANNEL/messages$QUERY" " " ;;
+		echo " " | dapi GET "/channels/$CHANNEL/messages$QUERY" ;;
 	'bulk_delete')
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'messages')
-		dapi POST "/channels/$CHANNEL/messages/bulk-delete" "$PAYLOAD" ;;
+		echo "$PAYLOAD" | dapi POST "/channels/$CHANNEL/messages/bulk-delete" ;;
 	esac ;;
 *)
 	echo "Usage: message {COMMAND} {JSON}" >&2
