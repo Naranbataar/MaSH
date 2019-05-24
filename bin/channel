@@ -2,7 +2,7 @@
 
 case $1 in
 'get'|'new'|'edit'|'del'|'list'|'dm_add'|'dm_remove'|'pos_edit'|'perm_edit'|'perm_delete')
-	[ -n "$2" ] && TEXT=$2 || read -r TEXT
+	read -r TEXT
 	case $1 in
 	'get')
 		CHANNEL=$(echo "$TEXT" | jq -r '.id')
