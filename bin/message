@@ -54,7 +54,7 @@ case $1 in
 	echo "    id: (snowflake) the id of the message"
 	echo "    channel: (snowflake) the target channel"
 	echo ""
-	echo "send: {channel} {content|embed|files} [nonce] [tts]"
+	echo "send: {channel} [*content] [*embed] [*files] [nonce] [tts]"
 	echo "    channel: (snowflake) the target channel"
 	echo "    content: (string) the text of the message (0-2000)"
 	echo "    embed: (embed object)  the embed of the message"
