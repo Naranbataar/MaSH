@@ -2,9 +2,9 @@
 [ -z $MASH_STATUS_DIR ] && MASH_STATUS_DIR='.mash_tmp'
 [ -d $MASH_STATUS_DIR ] || mkdir "$MASH_STATUS_DIR"
 
-if [[ -z "$1" ]]; then
+if [ -z "$1" ]; then
 	echo "Usage: ewait {CONDITION} [TIMEOUT]"
-       	echo "Watches the log until the it finds a event that meet the jq condition, and outputs it"	
+       	echo "Watches the log until it finds a event that meet the jq condition, and outputs it"	
       	exit 1
 fi
 
