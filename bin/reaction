@@ -2,33 +2,32 @@
 
 case $1 in
 'get'|'add'|'del'|'del_mod'|'del_all')
-	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
-	CHANNEL=$(echo "$TEXT" | jq -r ".channel");
-	TEXT=$(echo "$TEXT" | jq "del(.channel)")
+	read -r TEXT
+	CHANNEL=$(echo "$TEXT" | jq -r ".channel")
 	case $1 in
 	'get')
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		QUERY=$(filter-args query "$TEXT" 'before,after,limit')
-		dapi GET "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI$QUERY" " " ;;
+		QUERY=$(echo "$TEXT" | filter-args query 'before,after,limit')
+		echo " " | dapi GET "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI$QUERY" ;;
 	'add')
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		dapi PUT "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" "{}" ;;
+		echo "{}" | dapi PUT "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
 	'del')
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" "{}" ;;
+		echo "{}" | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
 	'del_mod')
 		USER=$(echo "$TEXT"| jq -r ".author")
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/$USER" "{}" ;;
+		echo "{}" | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/$USER" ;;
 	'del_all')
 		MSG=$(echo "$TEXT" | jq -r ".id")
-		dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions" "{}" ;;
+		echo "{}" | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions" ;;
 	esac ;;
 *)
-	echo "Usage: reaction {COMMAND} {JSON}" >&2
+	echo "Usage: reaction {COMMAND}" >&2
 	echo "Interacts with reaction endpoints"
 	echo ""
-	echo "Every command accepts a string of JSON, as stdout or arg"
+	echo "Every command accept a string of JSON on STDIN"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "get: {id} {channel} {emoji} [before] [after] [limit]"
