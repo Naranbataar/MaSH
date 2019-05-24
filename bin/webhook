@@ -18,15 +18,15 @@ case $1 in
 			echo "$PAYLOAD" | dapi @FILES "/webhooks/$ID$TOKEN" "$FILES"
 		fi ;;
 	'get')
-		dapi GET "/webhooks/$ID$TOKEN" "{}" ;;
+		echo " " | dapi GET "/webhooks/$ID$TOKEN" ;;
 	'edit')
-		dapi PATCH "/webhooks/$ID$TOKEN" "{}" ;;
+		echo " " | dapi PATCH "/webhooks/$ID$TOKEN" ;;
 	'del')
-		dapi DELETE "/webhooks/$ID$TOKEN" "{}" ;;
+		echo " " | dapi DELETE "/webhooks/$ID$TOKEN" ;;
 	'list_ch')
-		dapi GET "/channels/$ID/webhooks" "{}" ;;
+		echo " " | dapi GET "/channels/$ID/webhooks" ;;
 	'list_g')
-		dapi GET "/guilds/$ID/webhooks" "{}" ;;
+		echo " " | dapi GET "/guilds/$ID/webhooks"  ;;
 	esac ;;
 *)
 	echo "Usage: webhook {COMMAND}" >&2
