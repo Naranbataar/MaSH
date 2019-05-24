@@ -10,12 +10,12 @@ case $1 in
 		echo " " | dapi PUT "/guilds/$GUILD/bans/$USER$QUERY" ;;
 	'unban')
 		USER=$(echo "$TEXT" | jq -r ".id")
-		echo "{}" | dapi DELETE "/guilds/$GUILD/bans/$USER" ;;
+		echo " " | dapi DELETE "/guilds/$GUILD/bans/$USER" ;;
 	'get_ban')
 		USER=$(echo "$TEXT"| jq -r ".id")
-		echo "{}" | dapi GET "/guilds/$GUILD/bans/$USER" ;;
+		echo " " | dapi GET "/guilds/$GUILD/bans/$USER" ;;
 	'get_bans')
-		echo "{}" | dapi GET "/guilds/$GUILD/bans" ;;
+		echo " " | dapi GET "/guilds/$GUILD/bans" ;;
 	'prune')
 		QUERY=$(echo "$TEXT" | filter-args query 'days,compute_prune_count' | tr '_' '-')
 		echo " " | dapi POST "/guilds/$GUILD/prune$QUERY" ;;
