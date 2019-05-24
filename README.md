@@ -24,9 +24,8 @@ PATH="$PATH:$(realpath ./mash/bin)"
 MASH_AUTH_TOKEN='TOKEN'; export MASH_AUTH_TOKEN
 MASH_AUTH_BOT=1; export MASH_AUTH_BOT
 
-trap '$0 "$@"' SIGTERM
-
 on-ready(){ echo -e "$(echo "$1" | jq -r '.user | .username,.id')"; }
+on-resume(){ echo "Resumed"; }
 
 on-message(){
 	prefix=">";
@@ -57,6 +56,7 @@ while read -r EVENT; do
 	D=$(echo "$EVENT" | jq -cM '.d')
 	case $T in
 	'READY') on-ready "$D" & ;;
+	'RESUMED') on-resume "$D" & ;;
 	'MESSAGE_CREATE') on-message "$D" & ;;
 	esac
 done < <(ws-connect)
@@ -71,6 +71,5 @@ their pipes and statuses
 ## Todo
 - Voice Support
 - Reduce external calls
-- Stability tests
 - Command helper
 
