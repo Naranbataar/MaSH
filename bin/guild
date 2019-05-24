@@ -3,19 +3,17 @@
 case $1 in
 'get'|'new'|'edit'|'del'|'embed_get'|'embed_edit'|'audit_log'|'vanity_url'|'widget')
 	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	GUILD=$(echo "$TEXT" | jq -r '.id')
 	case $1 in
 	'get')
-		GUILD=$(echo "$TEXT" | jq -r '.id')
 		dapi GET "/guilds/$GUILD" "{}" ;;
 	'new')
 		PAYLOAD=$(filter-args json "$TEXT" 'name,region,icon,verification_level,default_message_notifications,explicit_content_filter,roles,channels')
 		dapi POST "/guilds" "$PAYLOAD" ;;
 	'edit')
-		GUILD=$(echo "$TEXT" | jq -r '.id')
 		PAYLOAD=$(filter-args json "$TEXT" 'name,region,verification_level,default_message_notifications,explicit_content_filter,afk_channel_id,afk_timeout,icon,owner_id,splash,system_channel_id')
 		dapi PATCH "/guilds/$GUILD" "$PAYLOAD" ;;
 	'del')
-		GUILD=$(echo "$TEXT" | jq -r '.id')
 		dapi DELETE "/guilds/$GUILD" "{}" ;;
 	'embed_get')
 		dapi GET "/guilds/$GUILD/embed" "{}" ;;
