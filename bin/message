@@ -41,10 +41,10 @@ case $1 in
 		echo "$PAYLOAD" | dapi POST "/channels/$CHANNEL/messages/bulk-delete" ;;
 	esac ;;
 *)
-	echo "Usage: message {COMMAND} {JSON}" >&2
+	echo "Usage: message {COMMAND}" >&2
 	echo "Interacts with message endpoints"
 	echo ""
-	echo "Every command accepts a string of JSON, as stdout or arg"
+	echo "Every command accept a string of JSON on STDIN"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "type: {channel}"
