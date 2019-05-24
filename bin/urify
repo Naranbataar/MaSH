@@ -1,6 +1,6 @@
 #!/bin/bash
-[[ -z "$1" ]] && echo "Opens a file and converts it to a URI scheme inside a json key"; echo "Usage: urify {KEY} {JSON}"; exit 1
-[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+[[ -z "$1" ]] && echo "Opens the filepath on a JSON value, and converts it to a URI scheme. Accept a JSON string on STDIN"; echo "Usage: urify {KEY}"; exit 1
+read -r TEXT
 
 IMAGE=$(echo "$TEXT" | jq -r ".$1")
 MIME=$(file -bN --mime-type "$IMAGE")
