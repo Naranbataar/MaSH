@@ -22,7 +22,7 @@ case $1 in
 		echo "{}" | dapi GET "/guilds/$GUILD/emojis" ;;
 	esac ;;
 *)
-	echo "Usage: emoji {COMMAND} {JSON}" >&2
+	echo "Usage: emoji {COMMAND}" >&2
 	echo "Interacts with emoji endpoints"
 	echo ""
 	echo "Every command accept a string of JSON on STDIN"
