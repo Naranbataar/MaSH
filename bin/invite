@@ -2,7 +2,7 @@
 
 case $1 in
 'get'|'new'|'del'|'list_ch'|'list_g')
-	[ -n "$2" ] && TEXT=$2 || read -r TEXT
+	read -r TEXT
 	case $1 in
 	'get')
 		INV=$(echo "$TEXT" | jq -r ".code")
@@ -22,10 +22,10 @@ case $1 in
 		echo "{}" | dapi GET "/guilds/$GUILD/invites" ;;
 	esac ;;
 *)
-	echo "Usage: invite {COMMAND} {JSON}" >&2
+	echo "Usage: invite {COMMAND}" >&2
 	echo "Interacts with invite endpoints"
 	echo ""
-	echo "Every command accepts a string of JSON, as stdout or arg"
+	echo "Every command accept a string of JSON on STDIN"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "get: {code}"
