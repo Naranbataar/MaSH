@@ -2,7 +2,7 @@
 
 case $1 in
 'get'|'new'|'edit'|'del'|'embed_get'|'embed_edit'|'audit_log'|'vanity_url'|'widget')
-	[ -n "$2" ] && TEXT=$2 || read -r TEXT
+	read -r TEXT
 	GUILD=$(echo "$TEXT" | jq -r '.id')
 	case $1 in
 	'get')
@@ -30,10 +30,10 @@ case $1 in
 		echo " " | dapi GET "/guilds/$GUILD/widget.png$QUERY" ;;
 	esac ;;
 *)
-	echo "Usage: guild {COMMAND} {JSON}" >&2
+	echo "Usage: guild {COMMAND}" >&2
 	echo "Interacts with guild endpoints"
 	echo ""
-	echo "Every command accepts a string of JSON, as stdout or arg"
+	echo "Every command accept a string of JSON on STDIN"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "get: {id}"
