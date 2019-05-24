@@ -7,7 +7,7 @@ case $1 in
 	case $1 in
 	'get')
 		USER=$(echo "$TEXT" | jq -r ".id")
-		echo "{}" | dapi GET "/guilds/$GUILD/members/$USER" ;;
+		echo " " | dapi GET "/guilds/$GUILD/members/$USER" ;;
 	'new')
 		USER=$(echo "$TEXT" | jq -r ".id")
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'access_token,nick,roles,mute,deaf')
@@ -18,7 +18,7 @@ case $1 in
 		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/members/$USER" ;;
 	'del')
 		USER=$(echo "$TEXT" | jq -r ".id")
-		echo "{}" | dapi DELETE "/guild/$GUILD/members/$USER" ;;
+		echo " " | dapi DELETE "/guild/$GUILD/members/$USER" ;;
 	'list')
 		QUERY=$(echo "$TEXT" | filter-args query 'limit,after')
 		echo " " | dapi GET "/guilds/$GUILD/members$QUERY" ;;
