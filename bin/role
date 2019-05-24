@@ -2,37 +2,36 @@
 
 case $1 in
 'new'|'edit'|'del'|'list'|'give'|'take'|'pos_edit')
-	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
-	GUILD=$(echo "$TEXT" | jq -r ".guild");
-	TEXT=$(echo "$TEXT" | jq "del(.guild)")
+	read -r TEXT
+	GUILD=$(echo "$TEXT" | jq -r ".guild")
 	case $1 in
 	'new')
-		PAYLOAD=$(filter-args json "$TEXT" "name,permissions,color,hoist,mentionable")
-		dapi POST "/guilds/$GUILD/roles" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json "name,permissions,color,hoist,mentionable")
+		echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/roles" ;;
 	'edit')
 		ROLE=$(echo "$TEXT"| jq -r ".id")
-		PAYLOAD=$(filter-args json "$TEXT" "name,permissions,color,hoist,mentionable")
-		dapi PATCH "/guilds/$GUILD/roles/$ROLE" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json "name,permissions,color,hoist,mentionable")
+		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/roles/$ROLE" ;;
 	'del')
 		ROLE=$(echo "$TEXT"| jq -r ".id")
-		dapi DELETE "/guilds/$GUILD/roles/$ROLE" "{}" ;;
+		echo "{}" | dapi DELETE "/guilds/$GUILD/roles/$ROLE" ;;
 	'list')
-		dapi GET "/guilds/$GUILD/roles" "{}" ;;
+		echo "{}" | dapi GET "/guilds/$GUILD/roles" ;;
 	'give')
 		ROLE=$(echo "$TEXT"| jq -r ".id"); USER=$(echo "$TEXT"| jq -r ".user")
-		dapi PUT "/guilds/$GUILD/members/$USER/roles/$ROLE" "{}" ;;
+		echo "{}" | dapi PUT "/guilds/$GUILD/members/$USER/roles/$ROLE" ;;
 	'take')
 		ROLE=$(echo "$TEXT"| jq -r ".id"); USER=$(echo "$TEXT"| jq -r ".user")
-		dapi DELETE "/guilds/$GUILD/members/$USER/roles/$ROLE" "{}" ;;
+		echo "{}" | dapi DELETE "/guilds/$GUILD/members/$USER/roles/$ROLE" ;;
 	'pos_edit')
 		PAYLOAD=$(echo "$TEXT" | jq '.data')
-		dapi PATCH "/guild/$GUILD/roles" "$PAYLOAD" ;;
+		echo "$PAYLOAD" | dapi PATCH "/guild/$GUILD/roles" ;;
 	esac ;;
 *)
-	echo "Usage: role {COMMAND} {JSON}" >&2
+	echo "Usage: role {COMMAND}" >&2
 	echo "Interacts with role endpoints"
 	echo ""
-	echo "Every command accepts a string of JSON, as stdout or arg"
+	echo "Every command accept a string of JSON on STDIN"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "new: {guild} [name] [permissions] [color] [hoist] "
