@@ -6,20 +6,20 @@ case $1 in
 	case $1 in
 	'get')
 		INV=$(echo "$TEXT" | jq -r ".code")
-		echo "{}" | dapi GET "/invites/$INV" ;;
+		echo " " | dapi GET "/invites/$INV" ;;
 	'new')
 		CHANNEL=$(echo "$TEXT" | jq -r ".channel")
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'max_age,max_uses,temporary,unique')
 		echo "$PAYLOAD" | dapi POST "/channels/$CHANNEL/invites" ;;
 	'del')
 		INV=$(echo "$TEXT" | jq -r ".code")
-		echo "{}" | dapi DELETE "/invites/$INV" ;;
+		echo " " | dapi DELETE "/invites/$INV" ;;
 	'list_ch')
 		CHANNEL=$(echo "$TEXT" | jq -r ".id")
-		echo "{}" | dapi GET "/channels/$CHANNEL/invites" ;;
+		echo " " | dapi GET "/channels/$CHANNEL/invites" ;;
 	'list_g')
 		GUILD=$(echo "$TEXT" | jq -r ".id")
-		echo "{}" | dapi GET "/guilds/$GUILD/invites" ;;
+		echo " " | dapi GET "/guilds/$GUILD/invites" ;;
 	esac ;;
 *)
 	echo "Usage: invite {COMMAND}" >&2
