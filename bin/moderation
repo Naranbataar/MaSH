@@ -2,33 +2,32 @@
 
 case $1 in
 'ban'|'unban'|'get_ban'|'get_bans'|'prune'|'count_prune')
-	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	read -r TEXT
 	GUILD=$(echo "$TEXT" | jq -r ".guild");
-	TEXT=$(echo "$TEXT" | jq "del(.guild)")
 	case $1 in
 	'ban')
-		QUERY=$(filter-args query "$TEXT" 'reason,delete_message_days' | tr '_' '-')
-		dapi PUT "/guilds/$GUILD/bans/$USER$QUERY" " " ;;
+		QUERY=$(echo "$TEXT" | filter-args query 'reason,delete_message_days' | tr '_' '-')
+		echo " " | dapi PUT "/guilds/$GUILD/bans/$USER$QUERY" ;;
 	'unban')
 		USER=$(echo "$TEXT" | jq -r ".id")
-		dapi DELETE "/guilds/$GUILD/bans/$USER" "{}" ;;
+		echo "{}" | dapi DELETE "/guilds/$GUILD/bans/$USER" ;;
 	'get_ban')
 		USER=$(echo "$TEXT"| jq -r ".id")
-		dapi GET "/guilds/$GUILD/bans/$USER" "{}" ;;
+		echo "{}" | dapi GET "/guilds/$GUILD/bans/$USER" ;;
 	'get_bans')
-		dapi GET "/guilds/$GUILD/bans" "{}" ;;
+		echo "{}" | dapi GET "/guilds/$GUILD/bans" ;;
 	'prune')
-		QUERY=$(filter-args query "$TEXT" 'days,compute_prune_count' | tr '_' '-')
-		dapi POST "/guilds/$GUILD/prune$QUERY" " " ;;
+		QUERY=$(echo "$TEXT" | filter-args query 'days,compute_prune_count' | tr '_' '-')
+		echo " " | dapi POST "/guilds/$GUILD/prune$QUERY" ;;
 	'count_prune')
-		QUERY=$(filter-args query "$TEXT" 'days')
-		dapi GET "/guilds/$GUILD/prune$QUERY" " " ;;
+		QUERY=$(echo "$TEXT" | filter-args query 'days')
+		echo " " | dapi GET "/guilds/$GUILD/prune$QUERY" ;;
 	esac ;;
 *)
-	echo "Usage: moderation {COMMAND} {JSON}" >&2
+	echo "Usage: moderation {COMMAND}" >&2
 	echo "Interacts with moderation endpoints"
 	echo ""
-	echo "Every command accepts a string of JSON, as stdout or arg"
+	echo "Every command accept a string of JSON on STDIN"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "ban: {id} {guild} [reason] [delete_message_days]"
