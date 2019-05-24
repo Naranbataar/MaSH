@@ -2,31 +2,30 @@
 
 case $1 in
 'get'|'edit'|'new_dm'|'dms'|'guilds'|'connections')
-	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	read -r TEXT
 	case $1 in
 	'get')
 		USER=$(echo "$TEXT" | jq -r ".id")
-		dapi GET "/users/$USER" "{}" ;;
+		echo "{}" | dapi GET "/users/$USER" ;;
 	'edit')
-		PAYLOAD=$(filter-args json "$TEXT" 'name,avatar')
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'name,avatar')
 		echo "$PAYLOAD" | dapi PATCH "/users/@me" ;;
 	'new_dm')
-		PAYLOAD=$(filter-args json "$TEXT" 'id')
-		PAYLOAD=$(echo "$PAYLOAD" | jq '.recipient_id = .id' | jq 'del(.id)')
-		dapi POST "/users/@me/channels" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'id' | jq -cM '.recipient_id = .id | del(.id)')
+		echo "$PAYLOAD" | dapi POST "/users/@me/channels" ;;
 	'dms')
-		dapi GET "/users/@me/channels" "{}" ;;
+		echo "{}" | dapi GET "/users/@me/channels" ;;
 	'guilds')		
-		QUERY=$(filter-args query "$TEXT" 'before,after,limit')
-		dapi GET "/users/@me/guilds$QUERY" " " ;;
+		QUERY=$(echo "$TEXT" | filter-args query 'before,after,limit')
+		echo " " | dapi GET "/users/@me/guilds$QUERY" ;;
 	'connections')
-		dapi GET "/users/@me/connections" "{}" ;;
+		echo "{}" | dapi GET "/users/@me/connections" ;;
 	esac ;;
 *)
-	echo "Usage: user {COMMAND} {JSON}" >&2
+	echo "Usage: user {COMMAND}" >&2
 	echo "Interacts with user endpoints"
 	echo ""
-	echo "Every command accepts a string of JSON, as stdout or arg"
+	echo "Every command accept a string of JSON on STDIN"
        	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "get: {id}"
