@@ -6,7 +6,7 @@ case $1 in
 	case $1 in
 	'get')
 		USER=$(echo "$TEXT" | jq -r ".id")
-		echo "{}" | dapi GET "/users/$USER" ;;
+		echo " " | dapi GET "/users/$USER" ;;
 	'edit')
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'name,avatar')
 		echo "$PAYLOAD" | dapi PATCH "/users/@me" ;;
@@ -14,12 +14,12 @@ case $1 in
 		PAYLOAD=$(echo "$TEXT" | filter-args json 'id' | jq -cM '.recipient_id = .id | del(.id)')
 		echo "$PAYLOAD" | dapi POST "/users/@me/channels" ;;
 	'dms')
-		echo "{}" | dapi GET "/users/@me/channels" ;;
+		echo " " | dapi GET "/users/@me/channels" ;;
 	'guilds')		
 		QUERY=$(echo "$TEXT" | filter-args query 'before,after,limit')
 		echo " " | dapi GET "/users/@me/guilds$QUERY" ;;
 	'connections')
-		echo "{}" | dapi GET "/users/@me/connections" ;;
+		echo " " | dapi GET "/users/@me/connections" ;;
 	esac ;;
 *)
 	echo "Usage: user {COMMAND}" >&2
