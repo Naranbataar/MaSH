@@ -1,0 +1,17 @@
+#!/bin/bash
+[ -z $MASH_STATUS_DIR ] && MASH_STATUS_DIR='.mash_tmp'
+[ -d $MASH_STATUS_DIR ] || mkdir "$MASH_STATUS_DIR"
+
+if [[ -z "$1" ]]; then
+	echo "Usage: ewait {CONDITION} [TIMEOUT]"
+       	echo "Watches the log until the it finds a event that meet the jq condition, and outputs it"	
+      	exit 1
+fi
+
+while IFS= read -r EVENT || [[ -n "$EVENT" ]]; do
+    DATA=$(echo "$EVENT" | jq "$1")
+    if [ $DATA == "true" ]; then
+	echo "$EVENT"
+	break
+    fi
+done < <(timeout ${2:-0} tail -f "$MASH_STATUS_DIR/ws_log")
