@@ -70,6 +70,6 @@ their pipes and statuses
 
 ## Todo
 - Voice Support
-- Reduce external calls
+- Reduce `jq` calls
 - Command helper
 
