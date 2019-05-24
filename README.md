@@ -9,7 +9,6 @@ write Discord Bots on pure Shell Script
 interact using the standart input/output
 - Wraps the entire REST API
 - Efficient rate limiting
-- Voice Support [TODO]
 
 ## Requirements
 - `jq`
@@ -68,3 +67,9 @@ done < <(ws-connect)
 - `MASH_AUTH_BOT` - `1` for bot users, `0` for user bots
 - `MASH_STATUS_DIR` - The directory where the scripts will save  
 their pipes and statuses
+
+## Todo
+- Voice Support
+- Reduce external calls
+- Stability tests
+
