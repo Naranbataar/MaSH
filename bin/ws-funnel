@@ -6,10 +6,8 @@ PIPE="$MASH_STATUS_DIR/ws_pipe"
 exec 3<> $PIPE
 
 FUNNEL="$MASH_STATUS_DIR/ws_funnel"
-[ -p $FUNNEL ] && rm -f $FUNNEL
-mkfifo $FUNNEL
+rm -f $FUNNEL; mkfifo $FUNNEL
 exec 4<> $FUNNEL
-trap "rm -f $FUNNEL" EXIT
 
 TN=$(echo "$T/$N" | bc -l)
 while read -r PAYLOAD; do
