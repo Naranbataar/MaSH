@@ -2,7 +2,7 @@
 
 case $1 in
 'get'|'new'|'edit'|'del'|'list'|'my_nick_edit')
-	[ -n "$2" ] && TEXT=$2 || read -r TEXT
+	read -r TEXT
 	GUILD=$(echo "$TEXT" | jq -r ".guild")
 	case $1 in
 	'get')
@@ -27,10 +27,10 @@ case $1 in
 		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/members/@me/nick" ;;
 	esac ;;
 *)
-	echo "Usage: member {COMMAND} {JSON}" >&2
+	echo "Usage: member {COMMAND}" >&2
 	echo "Interacts with member endpoints"
 	echo ""
-	echo "Every command accepts a string of JSON, as stdout or arg"
+	echo "Every command accept a string of JSON on STDIN"
 	echo "Avaliable commands with their respective JSON keys:"
 	echo ""
 	echo "get: {id} {guild}"
