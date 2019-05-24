@@ -2,25 +2,24 @@
 
 case $1 in
 'get'|'new'|'edit'|'del'|'sync')
-	[[ ! -z "$2" ]] && TEXT=$2 || read TEXT
+	[ -n "$2" ] && TEXT=$2 || read -r TEXT
 	GUILD=$(echo "$TEXT" | jq -r ".guild");
-	TEXT=$(echo "$TEXT" | jq "del(.guild)")
 	case $1 in
 	'get')
-		dapi GET "/guilds/$GUILD/integrations" "{}" ;;
+		echo "{}" | dapi GET "/guilds/$GUILD/integrations" ;;
 	'new')
-		PAYLOAD=$(filter-args json "$TEXT" 'id,type')
-		dapi POST "/guilds/$GUILD/integrations" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'id,type')
+		echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/integrations" ;;
 	'edit')
 		INTG=$(echo "$TEXT"| jq -r ".id")
-		PAYLOAD=$(filter-args json "$TEXT" 'expire_behavior,expire_grace_period,enable_emoticons')
-		dapi PATCH "/guilds/$GUILD/integrations/$INTG" "$PAYLOAD" ;;
+		PAYLOAD=$(echo "$TEXT" | filter-args json 'expire_behavior,expire_grace_period,enable_emoticons')
+		echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/integrations/$INTG" ;;
 	'del')
 		INTG=$(echo "$TEXT"| jq -r ".id")
-		dapi DELETE "/guilds/$GUILD/integrations/$INTG" "{}" ;;
+		echo "{}" | dapi DELETE "/guilds/$GUILD/integrations/$INTG" ;;
 	'sync')
 		INTG=$(echo "$TEXT"| jq -r ".id")
-		dapi POST "/guilds/$GUILD/integrations/$INTG/sync" "{}" ;;
+		echo "{}" | dapi POST "/guilds/$GUILD/integrations/$INTG/sync" ;;
 	esac ;;
 *)
 	echo "Usage: integration {COMMAND} {JSON}" >&2
