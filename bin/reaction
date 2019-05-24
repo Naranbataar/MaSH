@@ -11,17 +11,17 @@ case $1 in
 		echo " " | dapi GET "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI$QUERY" ;;
 	'add')
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		echo "{}" | dapi PUT "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
+		echo " " | dapi PUT "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
 	'del')
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		echo "{}" | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
+		echo " " | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
 	'del_mod')
 		USER=$(echo "$TEXT"| jq -r ".author")
 		MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-		echo "{}" | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/$USER" ;;
+		echo " " | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/$USER" ;;
 	'del_all')
 		MSG=$(echo "$TEXT" | jq -r ".id")
-		echo "{}" | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions" ;;
+		echo " " | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions" ;;
 	esac ;;
 *)
 	echo "Usage: reaction {COMMAND}" >&2
