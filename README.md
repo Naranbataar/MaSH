@@ -69,6 +69,7 @@ done < <(ws-connect)
 their pipes and statuses
 
 ## Todo
+- Sharding
 - Voice Support
 - Reduce `jq` calls
 
