@@ -6,7 +6,7 @@ ROUTE=$(echo "$2" | cut -d'/' -f-3 | tr '/' '_')
 LIMITG="$MASH_STATUS_DIR/global.lock"
 LIMITF="$MASH_STATUS_DIR/$ROUTE.lock"
 HEADERS=$(mktemp)
-MASH_HTTP_USERAGENT="DiscordBot (https://github.com/Naranbataar/MaSH/ 0.0)"
+MASH_HTTP_USERAGENT="DiscordBot (https://github.com/Naranbataar/MaSH/ 1.1)"
 
 while [ -f "$LIMITG" ]; do sleep 0.5; done
 
