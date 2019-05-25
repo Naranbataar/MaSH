@@ -28,15 +28,15 @@ on-ready(){ echo -e "$(echo "$1" | jq -r '.user | .username,.id')"; }
 on-resume(){ echo "Resumed"; }
 
 on-message(){
-	prefix=">";
-	context=$(echo "$1"| jq -r '.content,.id,(.author|.id),.channel_id,.guild_id')
+	prefix=">"
+	context=$(echo "$1"| jq -r '.content,.id,(.author|.id),.channel_id,.guild_id,(.author|.bot)')
 	mapfile -t context <<< "$context"
-		
+
 	content=${context[0]}; message=${context[1]}; author=${context[2]}
-	channel=${context[3]}; guild=${context[4]};
+	channel=${context[3]}; guild=${context[4]}; bot=${context[5]}
 
 	[[ "$content" != "$prefix"* ]] && exit
-	[ "$author" == "580420373410086932" ] && exit
+	[ "$bot" == "true" ] && exit
 
 	content=${content#$prefix}
 	IFS=' ' read -r -a args <<< "$content"
