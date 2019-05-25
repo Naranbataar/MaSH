@@ -9,9 +9,9 @@ if [ -z "$1" ]; then
 fi
 
 while IFS= read -r EVENT || [[ -n "$EVENT" ]]; do
-    DATA=$(echo "$EVENT" | jq "$1")
-    if [ $DATA == "true" ]; then
-	echo "$EVENT"
-	break
-    fi
-done < <(timeout ${2:-0} tail -f "$MASH_STATUS_DIR/ws_log")
+	DATA=$(echo "$EVENT" | jq "$1")
+	if [ $DATA == "true" ]; then
+		echo "$EVENT"
+		break
+	fi
+done < <(timeout ${2:-0} tail -n0 -f "$MASH_STATUS_DIR/ws_log")
