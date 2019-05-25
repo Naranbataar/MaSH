@@ -5,7 +5,7 @@ case $1 in
 	ARGS=$(echo "$PAYLOAD" | jq -cM "{$2} | with_entries(select(.value!=null))")
 	[ -n "$ARGS" ] && echo "$ARGS" || echo '{}' ;;
 'query')
-	ARGS=$(./$0 json "$PAYLOAD" "$2" | jq -r 'keys[] as $k | "\($k)=\(.[$k])"' | awk 'ORS="&"' | head -c -1)
+	ARGS=$($0 json "$PAYLOAD" "$2" | jq -r 'keys[] as $k | "\($k)=\(.[$k])"' | awk 'ORS="&"' | head -c -1)
 	[ -z "$ARGS" ] || echo "?$ARGS"	;;
 *)
 	echo "Usage: filter-args {OUTPUT_FORMAT} {ARGSTRING}"
