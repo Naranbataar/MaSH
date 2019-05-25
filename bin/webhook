@@ -4,9 +4,9 @@ case $1 in
 'exec'|'get'|'edit'|'del'|'list_ch'|'list_g')
 	read -r TEXT
 	COMMON=$(echo "$1"| jq -r '.id,.token')
-	mapfile -t COMMON <<< "$context"
+	mapfile -t COMMON <<< "$COMMON"
 
-	ID=${context[0]}; TOKEN=${context[1]}
+	ID=${COMMON[0]}; TOKEN=${COMMON[1]}
 	[ -n "$TOKEN" ] && TOKEN="/$TOKEN"
 	case $1 in
 	'exec')
