@@ -1,8 +1,8 @@
 #!/bin/bash
 [[ $MASH_AUTH_BOT == "1" ]] && BOT='Bot '
-[ -z $MASH_STATUS_DIR ] && MASH_STATUS_DIR='.mash_tmp'
+[ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
 
-ROUTE=$(echo $2 | cut -d'/' -f-3 | tr '/' '_')
+ROUTE=$(echo "$2" | cut -d'/' -f-3 | tr '/' '_')
 LIMITG="$MASH_STATUS_DIR/global.lock"
 LIMITF="$MASH_STATUS_DIR/$ROUTE.lock"
 HEADERS=$(mktemp)
@@ -10,19 +10,18 @@ MASH_HTTP_USERAGENT="DiscordBot (https://github.com/Naranbataar/MaSH/ 0.0)"
 
 while [ -f "$LIMITG" ]; do sleep 0.5; done
 
-exec 4>$LIMITF
+exec 4>"$LIMITF"
 flock 4
 
 read -r TEXT
-if [ $1 == '@FILES' ]; then
-	N=0; FILES=$(echo "$FILES" | jq '.[]' | while read f; do echo -e " -F 'file$N=@$f'"; N=$(( $N+1 )); done)
-	RESULT=$(curl -s -X "POST" -D $HEADERS -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -F "payload_json=$TEXT" $FILES "https://discordapp.com/api$2")
+if [ "$1" == '@FILES' ]; then
+	N=0; FILES=$(echo "$FILES" | jq '.[]' | while read -r f; do echo -e " -F 'file$N=@$f'"; N=$(( N+1 )); done)
+	RESULT=$(curl -s -X "POST" -D "$HEADERS" -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -F "payload_json=$TEXT" "$FILES" "https://discordapp.com/api$2")
 else
 	[ "$TEXT" != ' ' ] && d='-d @-'
-	RESULT=$(echo $TEXT | curl -s -X $1 -D $HEADERS -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -H "Content-Type: application/json" "https://discordapp.com/api$2" $d)
+	RESULT=$(echo "$TEXT" | curl -s -X "$1" -D "$HEADERS" -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -H "Content-Type: application/json" "https://discordapp.com/api$2" $d)
 fi
-
-if [[ "$(cat "$HEADERS" | head -n 1)" == *'429'* ]]; then
+if [[ "$(head -n 1 "$HEADERS")" == *'429'* ]]; then
 	retry=$( echo "$(echo "$RESULT" | jq -r '.retry_after') / 1000" | bc -l)
 	global=$( echo "$RESULT" | jq -r '.global' )
 	if [ "$global" == "true" ]; then
@@ -30,16 +29,15 @@ if [[ "$(cat "$HEADERS" | head -n 1)" == *'429'* ]]; then
 	else
 	       sleep "$retry"
 	fi
-	echo "$($0 "$@")"
+	$0 "$@"
 	exit
 else
 	echo "$RESULT"
 fi
-
 REMAINING=$(grep -i -m 1 "x-ratelimit-remaining" "$HEADERS" | grep -o '[0-9]' | tr -d '\n')
 if [ -n "$REMAINING" ]; then
-    if [ $(( $REMAINING + 0 )) -lt 1 ]; then
+    if [ $(( REMAINING + 0 )) -lt 1 ]; then
 	RESET=$(grep -i -m 1 "x-ratelimit-reset" "$HEADERS" | grep -o '[0-9]' | tr -d '\n')
-	sleep $(( ($RESET - $(date '+%s')) ))
+	sleep $(( (RESET - $(date '+%s')) ))
     fi	
 fi
