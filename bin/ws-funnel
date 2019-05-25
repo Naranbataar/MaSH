@@ -1,6 +1,6 @@
 #!/bin/bash
 N=120; T=60; S=0
-[ -z $MASH_STATUS_DIR ] && MASH_STATUS_DIR='.mash_tmp'
+[ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
 
 PIPE="$MASH_STATUS_DIR/ws_pipe"
 exec 3<> $PIPE
