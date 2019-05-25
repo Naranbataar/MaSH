@@ -29,11 +29,14 @@ on-resume(){ echo "Resumed"; }
 
 on-message(){
 	prefix=">"
-	context=$(echo "$1"| jq -r '.content,.id,(.author|.id),.channel_id,.guild_id,(.author|.bot)')
+	context=$(echo "$1"| jq -r '.id,(.author|.id),.channel_id,.guild_id,(.author|.bot)')
 	mapfile -t context <<< "$context"
 
-	content=${context[0]}; message=${context[1]}; author=${context[2]}
-	channel=${context[3]}; guild=${context[4]}; bot=${context[5]}
+	message=${context[0]}; author=${context[1]}; channel=${context[2]}
+	guild=${context[3]}; bot=${context[4]}
+
+	content=$(echo "$1" | jq '.content')
+	content=${content#'"'}; content=${content%'"'}
 
 	[[ "$content" != "$prefix"* ]] && exit
 	[ "$bot" == "true" ] && exit
