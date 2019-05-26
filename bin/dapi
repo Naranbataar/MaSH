@@ -21,9 +21,11 @@ else
 	[ "$TEXT" != ' ' ] && d='-d @-'
 	RESULT=$(echo "$TEXT" | curl -s -X "$1" -D "$HEADERS" -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -H "Content-Type: application/json" "https://discordapp.com/api$2" $d)
 fi
-if [[ "$(head -n 1 "$HEADERS")" == *'429'* ]]; then
-	retry=$( echo "$(echo "$RESULT" | jq -r '.retry_after') / 1000" | bc -l)
-	global=$( echo "$RESULT" | jq -r '.global' )
+
+HEADERS=$(cat "$HEADERS")
+if [[ "$(echo "$HEADERS" | head -n 1)" == *'429'* ]]; then
+	retry=$(echo "$(echo "$RESULT" | jq -r '.retry_after') / 1000" | bc -l)
+	global=$(echo "$RESULT" | jq -r '.global')
 	if [ "$global" == "true" ]; then
 	       touch "$LIMITG"; sleep "$retry"; rm -f "$LIMITG"
 	else
@@ -34,10 +36,11 @@ if [[ "$(head -n 1 "$HEADERS")" == *'429'* ]]; then
 else
 	echo "$RESULT"
 fi
-REMAINING=$(grep -i -m 1 "x-ratelimit-remaining" "$HEADERS" | grep -o '[0-9]' | tr -d '\n')
+
+mapfile -t LIMITS <<< $(echo "$HEADERS" | grep -i "x-ratelimit" | sed 's/[^0-9]*//g')
+REMAINING=${LIMITS[1]}; RESET=${LIMITS[2]}
 if [ -n "$REMAINING" ]; then
     if [ $(( REMAINING + 0 )) -lt 1 ]; then
-	RESET=$(grep -i -m 1 "x-ratelimit-reset" "$HEADERS" | grep -o '[0-9]' | tr -d '\n')
 	sleep $(( (RESET - $(date '+%s')) ))
     fi	
 fi
