@@ -42,7 +42,19 @@ heartbeat(){
 	done
 }
 
+BUFFER=''
 while read -r PAYLOAD; do
+	if echo "$PAYLOAD" | jq &> /dev/null; then
+		BUFFER="$PAYLOAD"
+	else
+		BUFFER="$BUFFER$PAYLOAD"
+		if ! echo "$BUFFER" | jq &> /dev/null; then
+			continue
+		fi
+	fi
+
+	PAYLOAD="$BUFFER"
+
 	OP=$(echo "$PAYLOAD" | jq -r '.op')
 	DATA=$(echo "$PAYLOAD" | jq -cM '.d')
 
