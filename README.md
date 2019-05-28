@@ -62,7 +62,7 @@ while read -r EVENT; do
 	'RESUMED') on-resume "$D" & ;;
 	'MESSAGE_CREATE') on-message "$D" & ;;
 	esac
-done < <(ws-connect)
+done < <(ws-start)
 ```
 
 ## Environment
@@ -72,7 +72,4 @@ done < <(ws-connect)
 their pipes and statuses
 
 ## Todo
-- Sharding
 - Voice Support
-- Reduce `jq` calls
-

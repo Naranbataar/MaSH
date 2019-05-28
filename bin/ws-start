@@ -1,0 +1,31 @@
+#!/bin/bash
+[ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
+[ -d "$MASH_STATUS_DIR" ] || mkdir "$MASH_STATUS_DIR"
+export MASH_STATUS_DIR
+
+LOGF="$MASH_STATUS_DIR/ws_log"
+rm -f $LOGF; touch $LOGF
+
+rm -f "$MASH_STATUS_DIR/"*'.lock'
+
+shard-loop(){
+	until ws-shard "$1" "$2"; do
+		echo "Shard $1: crashed with exit code $?... Reconnecting..." >&2
+		sleep 1
+	done
+}
+
+if [[ $MASH_AUTH_BOT == "1" ]]; then
+	SHARDS=$(echo " " | dapi GET "/gateway/bot" | jq -r '.shards')
+else
+	SHARDS=1
+fi
+
+for ((I=0;I<$SHARDS;I++)); do
+    shard-loop "$I" "$SHARDS" &
+done
+
+wait
+
+
+

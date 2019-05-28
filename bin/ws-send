@@ -1,5 +1,4 @@
 #!/bin/bash
 read -r TEXT
-[ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
-exec 4<> "$MASH_STATUS_DIR/ws_funnel"
+exec 4<> "$MASH_STATUS_DIR/ws_funnel_${2:-0}"
 echo "{\"op\": $1, \"d\": $TEXT}" | jq -cM >&4

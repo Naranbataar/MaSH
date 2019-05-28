@@ -1,11 +1,10 @@
 #!/bin/bash
 N=120; T=60; S=0
-[ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
 
-PIPE="$MASH_STATUS_DIR/ws_pipe"
+PIPE="$MASH_STATUS_DIR/ws_pipe_$1"
 exec 3<> $PIPE
 
-FUNNEL="$MASH_STATUS_DIR/ws_funnel"
+FUNNEL="$MASH_STATUS_DIR/ws_funnel_$1"
 rm -f $FUNNEL; mkfifo $FUNNEL
 exec 4<> $FUNNEL
 
