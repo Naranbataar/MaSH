@@ -9,7 +9,7 @@ dispatch(){
 }
 
 xcommand(){
-	NAMES=( $2 ) 
+	NAMES=( $2 )
 	for NAME in "${NAMES[@]}"; do
 		eval "MASH_COMMAND_$NAME='$1'"
 		eval "MASH_COMMAND_${NAME}_CTX='$3'"
@@ -86,9 +86,7 @@ bot-loop(){
 	done < <(ws-start)
 }
 
-dispatch MESSAGE_CREATE parse-commands
-
-if [[ $_ != $0 ]]; then
+if [[ $_ == $0 ]]; then
 	echo "Usage: source commands" >&2
 	echo "Helper functions for the lib"
 	echo ""
@@ -116,7 +114,7 @@ if [[ $_ != $0 ]]; then
 	echo "        an example would be '.channel_id,.id'"
 	echo ""
 	echo "set-args {ARG1} [ARG2] ... [ARGN]"
-	echo "    Creates a json object using environment" 
+	echo "    Creates a json object using environment"
 	echo "        variables as key and values"
 	echo ""
 	echo "    ARGs: Environment variables"
@@ -138,4 +136,6 @@ if [[ $_ != $0 ]]; then
 	echo ""
        	echo "    MAX_JOBS: How many background jobs the"
 	echo "        script should be able to create"
+else
+	dispatch MESSAGE_CREATE parse-commands
 fi
