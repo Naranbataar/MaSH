@@ -1,0 +1,141 @@
+#!/bin/bash
+
+prefix(){
+	MASH_PREFIX=( $1 )
+}
+
+dispatch(){
+	eval "MASH_DISPATCH_$1='$2'"
+}
+
+xcommand(){
+	NAMES=( $2 ) 
+	for NAME in "${NAMES[@]}"; do
+		eval "MASH_COMMAND_$NAME='$1'"
+		eval "MASH_COMMAND_${NAME}_CTX='$3'"
+	done
+}
+
+set-args(){
+	VARS=( $@ )
+	JSON=$(for VAR in "${VARS[@]}"; do echo "\"$VAR\":${!VAR:-null},"; done)
+	JSON="{${JSON::-1}}"; echo "$JSON" | jq -cM
+}
+
+get-args(){
+	read -r JSON
+	VARS=( $@ )
+	QUERY=$(for VAR in "${VARS[@]}"; do echo -e ".$VAR,"; done)
+	[ -z "$QUERY" ] && exit; QUERY="${QUERY::-1}"
+	QUERY=$(echo "$JSON" | jq -r "$QUERY")
+	mapfile -t QUERY <<< "$QUERY"
+
+	I=0
+	for VAR in "${VARS[@]}"; do
+		echo "$VAR='${QUERY[$I]}'"; I=$(( I+1 ))
+	done
+}
+
+parse-commands(){
+	CONTENT=$(echo "$1" | jq '.content')
+	CONTENT=${CONTENT#'"'}; CONTENT=${CONTENT%'"'}
+	if [ -n "$MASH_PREFIX" ]; then
+		for TEST_PREFIX in "${MASH_PREFIX[@]}"; do
+			if [[ "$CONTENT" == "$TEST_PREFIX"* ]]; then
+				PREFIX="$TEST_PREFIX"; break
+			fi
+		done
+	else
+		exit
+	fi
+	[ -z "$PREFIX" ] && exit
+
+	BOT=$(echo "$1" | jq '.author|.bot')
+	[ "$BOT" == "true" ] && exit
+
+	CONTENT=${CONTENT#$PREFIX}
+	CONTENT=("${CONTENT[@]//\\\"/\"}")
+	CONTENT=$(xargs printf '%s\n' <<< "$CONTENT")
+
+	mapfile -t ARGS <<< "$CONTENT"
+	ARGS=("${ARGS[@]//\"/\\\"}")
+
+	COMMAND=${ARGS[0]}
+	FUNC="MASH_COMMAND_$COMMAND"; FUNC="${!FUNC}"
+	[ -z "$FUNC" ] && exit
+
+	CTXSTR="MASH_COMMAND_${COMMAND}_CTX"; CTXSTR="${!CTXSTR}"
+	CTX=$(echo "$1" | jq -r "$CTXSTR" )
+	mapfile -t CTX <<< "$CTX"
+
+	"$FUNC" "${ARGS[@]:1}"
+}
+
+bot-loop(){
+	JOBS=($(jobs -p))
+	while read -r EVENT; do
+		while (( ${#JOBS[*]} >= ${1:-1000} )); do
+			sleep 0.5; JOBS=($(jobs -p))
+		done
+
+		T=$(echo "$EVENT" | jq -r '.t')
+		D=$(echo "$EVENT" | jq -cM '.d')
+		
+		F="MASH_DISPATCH_$T"; F="${!F}"	
+		[ -n "$F" ] && "$F" "$D" &
+	done < <(ws-start)
+}
+
+dispatch MESSAGE_CREATE parse-commands
+
+if [[ $_ != $0 ]]; then
+	echo "Usage: source commands" >&2
+	echo "Helper functions for the lib"
+	echo ""
+	echo "This script needs to be sourced to work properly"
+	echo "The avaliable functions are listed below"
+	echo ""
+	echo "prefix {PREFIX}"
+	echo "    Sets the bot prefix variable"
+	echo ""
+	echo "    PREFIX: A string having one or more prefixes"
+	echo ""
+	echo "dispatch {EVENT} {FUNCTION}"
+	echo "    Defines a event dispatch route"
+	echo ""
+	echo "    EVENT: The name of the event"
+	echo "    FUNCTION: The name of the function"
+	echo ""
+	echo "xcommand {FUNC} {NAME} {CTX_STRING}"
+	echo "    Defines a command"
+	echo ""
+	echo "    FUNC: The name of the function"
+	echo "    NAME: A string having one or more names"
+	echo "    CTX_STRING: A jq query for the CTX variable,"
+	echo "        needs to return values separated by lines"
+	echo "        an example would be '.channel_id,.id'"
+	echo ""
+	echo "set-args {ARG1} [ARG2] ... [ARGN]"
+	echo "    Creates a json object using environment" 
+	echo "        variables as key and values"
+	echo ""
+	echo "    ARGs: Environment variables"
+	echo ""
+	echo "get-args {ARG1} [ARG2] ... [ARGN]"
+	echo "    Returns an evaluable string of the keys"
+	echo "        and values from JSON keys"
+	echo ""
+	echo "    ARGs: JSON keys"
+	echo ""
+	echo "parse-commands {MESSAGE}"
+	echo "    Parse commands from a message object"
+	echo ""
+	echo "    MESSAGE: Data from a MESSAGE_CREATE payload"
+	echo ""
+	echo "bot-loop [MAX_JOBS]"
+	echo "    Reads the events from the websocket"
+       	echo "        and dispatches them"
+	echo ""
+       	echo "    MAX_JOBS: How many background jobs the"
+	echo "        script should be able to create"
+fi
