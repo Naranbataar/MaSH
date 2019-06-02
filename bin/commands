@@ -6,13 +6,16 @@ prefix(){
 
 dispatch(){
 	eval "MASH_DISPATCH_$1='$2'"
+	export "MASH_DISPATCH_$1"
 }
 
 xcommand(){
 	NAMES=( $2 )
 	for NAME in "${NAMES[@]}"; do
 		eval "MASH_COMMAND_$NAME='$1'"
+		export "MASH_COMMAND_$NAME"
 		eval "MASH_COMMAND_${NAME}_CTX='$3'"
+		export "MASH_COMMAND_${NAME}_CTX"
 	done
 }
 
@@ -94,18 +97,16 @@ parse-commands(){
 	"$FUNC" "${ARGS[@]:1}"
 }
 
-bot-loop(){
-	JOBS=($(jobs -p))
-	while read -r EVENT; do
-		while (( ${#JOBS[*]} >= ${1:-1000} )); do
-			sleep 0.5; JOBS=($(jobs -p))
-		done
+parse-event(){
+	T=$(echo "$EVENT" | jq -r '.t')
+	D=$(echo "$EVENT" | jq -cM '.d')
+	F="MASH_DISPATCH_$T"; F="${!F}"	
+	[ -n "$F" ] && "$F" "$D"
+}
 
-		T=$(echo "$EVENT" | jq -r '.t')
-		D=$(echo "$EVENT" | jq -cM '.d')
-		
-		F="MASH_DISPATCH_$T"; F="${!F}"	
-		[ -n "$F" ] && "$F" "$D" &
+bot-loop(){
+	while read -r EVENT; do
+		parse-event "$EVENT" &
 	done < <(ws-start)
 }
 
