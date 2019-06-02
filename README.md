@@ -34,8 +34,8 @@ dispatch READY on-ready
 dispatch RESUMED on-resume
 
 speak(){
-	content="\"<@${CTX[0]}> wants me to say: '$@'\""
-	channel="\"${CTX[1]}\""
+	content="<@${CTX[0]}> wants me to say: '$@'"
+	channel="${CTX[1]}"
 	result="$(set-args content channel | message send)"
 
 	eval "$(echo "$result" | get-args id)"
