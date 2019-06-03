@@ -32,7 +32,7 @@ case $1 in
 	echo "Interacts with role endpoints"
 	echo ""
 	echo "Every command accept a string of JSON on STDIN"
-       	echo "Avaliable commands with their respective JSON keys:"
+       	echo "Avaliable commands with their respective JSON keys"
 	echo ""
 	echo "new: {guild} [name] [permissions] [color] [hoist] "
 	echo "[mentionable]"
@@ -77,6 +77,6 @@ case $1 in
 	echo "pos_edit: {guild} {data}"
 	echo "    guild: (snowflake) the id of the target guild"
 	echo "    data: (array) an array of (snowflake, integer), containing the role id"
-	echo "		and the position"
+	echo "        and the position"
 	exit 1 ;;
 esac

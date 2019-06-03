@@ -26,7 +26,7 @@ case $1 in
 	echo "Interacts with user endpoints"
 	echo ""
 	echo "Every command accept a string of JSON on STDIN"
-       	echo "Avaliable commands with their respective JSON keys:"
+       	echo "Avaliable commands with their respective JSON keys"
 	echo ""
 	echo "get: {id}"
 	echo "    id: (snowflake|string) the id of an user, @me for the current user"

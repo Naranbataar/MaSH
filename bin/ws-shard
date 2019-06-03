@@ -1,4 +1,12 @@
 #!/bin/bash
+
+if [ -z "$2" ]; then
+        echo "Usage: ws-shard {SHARD} {NUM_SHARDS}" >&2
+        echo "Creates a connection with the gateway"
+        exit 1
+fi
+
+
 LOGF="$MASH_STATUS_DIR/ws_log"
 
 PIPE="$MASH_STATUS_DIR/ws_pipe_$1"

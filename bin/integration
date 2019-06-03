@@ -26,7 +26,7 @@ case $1 in
 	echo "Interacts with guild integration endpoints"
 	echo ""
 	echo "Every command accept a string of JSON on STDIN"
-       	echo "Avaliable commands with their respective JSON keys:"
+       	echo "Avaliable commands with their respective JSON keys"
 	echo ""
 	echo "get: {guild} "
 	echo "    guild: (snowflake) the id of the guild"

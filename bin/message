@@ -45,7 +45,7 @@ case $1 in
 	echo "Interacts with message endpoints"
 	echo ""
 	echo "Every command accept a string of JSON on STDIN"
-       	echo "Avaliable commands with their respective JSON keys:"
+       	echo "Avaliable commands with their respective JSON keys"
 	echo ""
 	echo "type: {channel}"
 	echo "    channel: (snowflake) the target channel"

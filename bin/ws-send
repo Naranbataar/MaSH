@@ -1,4 +1,11 @@
 #!/bin/bash
+
+if [ -z "$1" ]; then
+        echo "Usage: ws-send {OP_CODE} [SHARD]" >&2
+        echo "Sends the JSON data from the STDIN to the gateway, default by SHARD 0"
+        exit 1
+fi
+
 read -r TEXT
 exec 4<> "$MASH_STATUS_DIR/ws_funnel_${2:-0}"
 echo "{\"op\": $1, \"d\": $TEXT}" | jq -cM >&4

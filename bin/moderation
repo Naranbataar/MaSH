@@ -28,7 +28,7 @@ case $1 in
 	echo "Interacts with moderation endpoints"
 	echo ""
 	echo "Every command accept a string of JSON on STDIN"
-       	echo "Avaliable commands with their respective JSON keys:"
+       	echo "Avaliable commands with their respective JSON keys"
 	echo ""
 	echo "ban: {id} {guild} [reason] [delete_message_days]"
 	echo "    id: (snowflake) the id of the user"

@@ -28,7 +28,7 @@ case $1 in
 	echo "Interacts with reaction endpoints"
 	echo ""
 	echo "Every command accept a string of JSON on STDIN"
-       	echo "Avaliable commands with their respective JSON keys:"
+       	echo "Avaliable commands with their respective JSON keys"
 	echo ""
 	echo "get: {id} {channel} {emoji} [before] [after] [limit]"
 	echo "    id: (snowflake) the id of the message"

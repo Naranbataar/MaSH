@@ -3,7 +3,7 @@
 [ -d $MASH_STATUS_DIR ] || mkdir "$MASH_STATUS_DIR"
 
 if [ -z "$1" ]; then
-	echo "Usage: ewait {CONDITION} [TIMEOUT]"
+	echo "Usage: ewait {CONDITION} [TIMEOUT]" >&2
        	echo "Watches the log until it finds a event that meet the jq condition, and outputs it"	
       	exit 1
 fi

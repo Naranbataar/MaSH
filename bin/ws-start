@@ -15,11 +15,10 @@ shard-loop(){
 	done
 }
 
-if [[ $MASH_AUTH_BOT == "1" ]]; then
+if [ "$MASH_AUTH_BOT" == "1" ]; then
 	SHARDS=$(echo " " | dapi GET "/gateway/bot" | jq -r '.shards')
-else
-	SHARDS=1
 fi
+SHARDS="${SHARDS:-1}"
 
 for ((I=0;I<$SHARDS;I++)); do
     shard-loop "$I" "$SHARDS" &

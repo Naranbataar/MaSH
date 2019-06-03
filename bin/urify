@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ -z "$1" ]; then
-	echo "Usage: urify {KEY}"
+	echo "Usage: urify {KEY}" >&2
 	echo "Opens the filepath on a JSON value, and converts it to a URI scheme. Accept a JSON string on STDIN"
 	exit 1
 fi

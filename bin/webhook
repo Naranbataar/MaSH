@@ -33,7 +33,7 @@ case $1 in
 	echo "Interacts with webhook endpoints"
 	echo ""
 	echo "Every command accept a string of JSON on STDIN"
-       	echo "Avaliable commands with their respective JSON keys:"
+       	echo "Avaliable commands with their respective JSON keys"
 	echo ""
 	echo "exec: {id} {token} [*content] [*embeds] [*files] [username] "
 	echo "    [avatar_url] [tts]"
@@ -67,6 +67,5 @@ case $1 in
 	echo ""
 	echo "list_g: {id}"
 	echo "    id: (snowflake) the id of the guild"
-	echo ""
 	exit 1 ;;
 esac
