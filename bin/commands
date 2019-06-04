@@ -98,16 +98,15 @@ parse-commands(){
 }
 
 parse-event(){
-	T=$(echo "$EVENT" | jq -r '.t')
-	D=$(echo "$EVENT" | jq -cM '.d')
+	T=$(echo "$1" | jq -r '.t')
+	D=$(echo "$1" | jq -cM '.d')
 	F="MASH_DISPATCH_$T"; F="${!F}"	
 	[ -n "$F" ] && "$F" "$D"
 }
 
 bot-loop(){
-	while read -r EVENT; do
-		parse-event "$EVENT" &
-	done < <(ws-start)
+	. `which env_parallel.bash`
+	env_parallel parse-event "{}" < <(ws-start)
 }
 
 if [[ $_ == $0 ]]; then
