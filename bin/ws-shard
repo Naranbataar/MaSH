@@ -25,17 +25,17 @@ last-seq(){
 }
 
 heartbeat(){
-	LACK="0"; WAIT=15
+	WAIT=5
 	INTERVAL="$(awk "BEGIN { print ($1 / 1000) - $WAIT  }")"
 	while : ; do
+		LACK="$(date +%s%N)"
 		last-seq | ws-send 1 "$SHARD" 
 
-		ACK=$(cat "$ACKF")
 		sleep "$WAIT"
-		[ "$LACK" == "${ACK}" ] && (echo "null" | ws-send -1 "$SHARD")
-		echo "$(( ACK - LACK ))" >> "$LATF" 
+		ACK=$(cat "$ACKF"); ACK="${ACK:-LACK}"
+		[ "$LACK" -ge "$ACK" ] && (echo "null" | ws-send -1 "$SHARD")
+		echo "$(( ACK - LACK ))" > "$LATF" 
 		sleep "$INTERVAL"
-		LACK="$ACK"
 	done
 }
 
@@ -46,7 +46,6 @@ dispatch-event(){
 	OP="$(echo "$PAYLOAD" | grep -oP '(?<="op":).*?(?=,)')"
 	case $OP in
 	0)
-	echo "$PAYLOAD" >> "$LOGF"
 
 	TSD="$(echo "$PAYLOAD" | grep -oP '(?<="t":").*?(?=",)|(?<="s":).*?(?=,)|(?<="d":).*' | head --bytes -2)"
 	mapfile -t TSD <<< "$TSD"
@@ -67,7 +66,7 @@ dispatch-event(){
 	else	
 		echo "{\"token\": \"$MASH_AUTH_TOKEN\", \"properties\": {\"\$os\": \"linux\",\"\$browser\": \"mash\",\"\$device\": \"mash\"}, \"shard\": [$SHARD, $SHARDS]}" | ws-send 2 "$SHARD" 
 	fi 
-	INTERVAL=$(echo "$PAYLOAD" | jq -r '.d|.heartbeat_interval'); heartbeat "$INTERVAL" & 
+	INTERVAL=$(echo "$PAYLOAD" | jq -r '.d|.heartbeat_interval'); heartbeat "$INTERVAL" 
 	trap "kill -9 $! 2>/dev/null" EXIT ;;
 	11) echo "$(date +%s%N)" > "$ACKF" ;;
 	esac	
@@ -76,7 +75,7 @@ dispatch-event(){
 . `which env_parallel.bash`
 URL="wss://gateway.discord.gg/?v=6&encoding=json"
 DUMMY="{\"op\":-1, \"d\": null}"
-JOBS="$(parallel --number-of-threads)"
+JOBS="${MASH_PARALLEL_JOBLIMIT:-254}"
 tail -f > "$PIPE" &
 (websocat -S -tnE "$URL" < "$PIPE") | (for x in $(seq "$JOBS"); do echo "$DUMMY"; done; cat) | env_parallel --lb -q dispatch-event
 exit 1
