@@ -46,6 +46,7 @@ dispatch-event(){
 	OP="$(echo "$PAYLOAD" | grep -oP '(?<="op":).*?(?=,)')"
 	case $OP in
 	0)
+	echo "$PAYLOAD" >> "$LOGF"
 
 	TSD="$(echo "$PAYLOAD" | grep -oP '(?<="t":").*?(?=",)|(?<="s":).*?(?=,)|(?<="d":).*' | head --bytes -2)"
 	mapfile -t TSD <<< "$TSD"
