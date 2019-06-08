@@ -2,90 +2,81 @@
 
 if [ -z "$2" ]; then
         echo "Usage: ws-shard {SHARD} {NUM_SHARDS}" >&2
-        echo "Creates a connection with the gateway"
+        echo "Creates a connection with the gateway, always exit 1"
         exit 1
 fi
 
-
-LOGF="$MASH_STATUS_DIR/ws_log"
+SHARD="$1"; SHARDS="$2"
 
 PIPE="$MASH_STATUS_DIR/ws_pipe_$1"
-rm -f $PIPE; mkfifo $PIPE
-exec 3<> $PIPE
+rm -f "$PIPE"; mkfifo "$PIPE"
 
-ACKF="$MASH_STATUS_DIR/ws_lastack_$1"
-[ -f $ACKF ] || touch $ACKF
-SEQF="$MASH_STATUS_DIR/ws_seqf_$1"
-[ -f $SEQF ] || touch $SEQF
+LOGF="$MASH_STATUS_DIR/ws_log_$1"; touch "$LOGF"
+LATF="$MASH_STATUS_DIR/ws_latency_$1"; touch "$LATF"
+ACKF="$MASH_STATUS_DIR/ws_lastack_$1"; touch "$ACKF"
 SESF="$MASH_STATUS_DIR/ws_sessionid_$1"
-[ -f $SESF ] || touch $SESF
 
 ws-funnel "$1" &
-trap 'kill 0' EXIT
+trap "kill -9 $! 2>/dev/null" EXIT
+
+last-seq(){
+	SEQ="$(tail -n1 "$LOGF" | grep -oP '(?<="s":).*?(?=,)')"
+	echo "${SEQ:-0}"
+}
 
 heartbeat(){
-	LACK="0"
-	WAIT=15
-	INTERVAL=$(awk "BEGIN { print ($3 / 1000) - $WAIT }")
-	while true; do
-		SEQ=$(cat "$SEQF")
-		SEQ=${SEQ:-0}
-		echo "$SEQ" | ws-send 1 "$2"
+	LACK="0"; WAIT=15
+	INTERVAL="$(awk "BEGIN { print ($1 / 1000) - $WAIT  }")"
+	while : ; do
+		last-seq | ws-send 1 "$SHARD" 
+
 		ACK=$(cat "$ACKF")
-
 		sleep "$WAIT"
-		if [ "$LACK" == "$ACK" ]; then
-			pkill -9 "$1"
-			$4 "$5"; exit
-		fi
-
+		[ "$LACK" == "${ACK}" ] && (echo "null" | ws-send -1 "$SHARD")
+		echo "$(( ACK - LACK ))" >> "$LATF" 
 		sleep "$INTERVAL"
-		LACK=$ACK
+		LACK="$ACK"
 	done
 }
 
-BUFFER=''
-while read -r PAYLOAD; do
-	if echo "$PAYLOAD" | jq &> /dev/null; then
-		BUFFER="$PAYLOAD"
-	else
-		BUFFER="$BUFFER$PAYLOAD"
-		if ! echo "$BUFFER" | jq &> /dev/null; then
-			continue
-		fi
-	fi
+dispatch-event(){
+	#read -r PAYLOAD
+	PAYLOAD="$1"
 
-	PAYLOAD="$BUFFER"
-
-	OP=$(echo "$PAYLOAD" | jq -r '.op')
-	DATA=$(echo "$PAYLOAD" | jq -cM '.d')
-
+	OP="$(echo "$PAYLOAD" | grep -oP '(?<="op":).*?(?=,)')"
 	case $OP in
 	0)
-	echo "$PAYLOAD" | jq -r '.s' > $SEQF
-	if [ "$(echo "$PAYLOAD" | jq -r '.t')" == 'READY' ]; then
-		echo "$DATA" | jq -r '.session_id' > $SESF
-	fi
-	echo "$PAYLOAD" >> $LOGF
-	echo "$PAYLOAD" ;;	
+	echo "$PAYLOAD" >> "$LOGF"
+
+	TSD="$(echo "$PAYLOAD" | grep -oP '(?<="t":").*?(?=",)|(?<="s":).*?(?=,)|(?<="d":).*' | head --bytes -2)"
+	mapfile -t TSD <<< "$TSD"
+	T="${TSD[0]}"; S="${TSD[1]}"; D="${TSD[2]}"
+
+	[ "$T" == 'READY' ] && (echo "$D" | jq -r '.session_id' > "$SESF")
+
+	echo "$T $D" ;; 	
 	7)
-	$0 "$@"; exit ;;
+	echo "null" | ws-send -1 "$SHARD";;
 	9)
-	rm -f $SESF
-	$0 "$@"; exit ;;
+	rm -f "$SESF"; rm -f "$LOGF"
+	echo "null" | ws-send -1 "$SHARD";;
 	10)
-	INTERVAL=$(echo "$DATA" | jq -r '.heartbeat_interval')
-	heartbeat "$$" "$1" "$INTERVAL" "$0" "$@" &
 
-	[ -f "$SESF" ] && SES=$(cat $SESF)
-	if [ -z "$SES" ]; then
-		echo "{\"token\": \"$MASH_AUTH_TOKEN\", \"properties\": {\"\$os\": \"linux\",\"\$browser\": \"mash\",\"\$device\": \"mash\"}, \"shard\": [$1, $2]}" | ws-send 2 "$1" 
-	else
-		SEQ=$(cat $SEQF); SEQ=${SEQ:-0}
-		echo "{\"token\": \"$MASH_AUTH_TOKEN\", \"session_id\": \"$SES\", \"seq\": $SEQ}" | ws-send 6 "$1"
-	fi ;;
-	11)
-	echo "$(( $(date +%s%N)/1000000 ))" > $ACKF ;;
+	if [ -f "$SESF" ]; then
+		echo "{\"token\": \"$MASH_AUTH_TOKEN\", \"session_id\": \"$(cat "$SESF")\", \"seq\": $(last-seq)}" | ws-send 6 "$SHARD"
+	else	
+		echo "{\"token\": \"$MASH_AUTH_TOKEN\", \"properties\": {\"\$os\": \"linux\",\"\$browser\": \"mash\",\"\$device\": \"mash\"}, \"shard\": [$SHARD, $SHARDS]}" | ws-send 2 "$SHARD" 
+	fi 
+	INTERVAL=$(echo "$PAYLOAD" | jq -r '.d|.heartbeat_interval'); heartbeat "$INTERVAL" & 
+	trap "kill -9 $! 2>/dev/null" EXIT ;;
+	11) echo "$(date +%s%N)" > "$ACKF" ;;
 	esac	
-done < <(websocat -tnE "wss://gateway.discord.gg/?v=6&encoding=json" < $PIPE)
+}
 
+. `which env_parallel.bash`
+URL="wss://gateway.discord.gg/?v=6&encoding=json"
+DUMMY="{\"op\":-1, \"d\": null}"
+JOBS="$(parallel --number-of-threads)"
+tail -f > "$PIPE" &
+(websocat -S -tnE "$URL" < "$PIPE") | (for x in $(seq "$JOBS"); do echo "$DUMMY"; done; cat) | env_parallel --lb -q dispatch-event
+exit 1

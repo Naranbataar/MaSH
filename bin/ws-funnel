@@ -9,14 +9,14 @@ fi
 N=120; T=60; S=0
 
 PIPE="$MASH_STATUS_DIR/ws_pipe_$1"
-exec 3<> $PIPE
 
 FUNNEL="$MASH_STATUS_DIR/ws_funnel_$1"
-rm -f $FUNNEL; mkfifo $FUNNEL
-exec 4<> $FUNNEL
+rm -f "$FUNNEL"; mkfifo "$FUNNEL"
 
 TN=$(echo "$T/$N" | bc -l)
-while read -r PAYLOAD; do
+rate-limit(){
+	PAYLOAD="$1"
+
 	now=$(date '+%s')
 	SN=$(echo "$([ "$(echo "$S==0" | bc -l)" == "1" ] && echo "$now" || echo "$SN") + $TN" | bc -l)
 	if [ "$(echo "$SN < $now" | bc -l)" == "1" ]; then
@@ -27,5 +27,9 @@ while read -r PAYLOAD; do
 		S=$SN
 	fi
 
-	echo "$PAYLOAD" | jq -cM >&3
-done < $FUNNEL	
+	[ "$PAYLOAD" != 'dummy' ] && echo "$PAYLOAD" > "$PIPE"
+}
+
+. `which env_parallel.bash`
+tail -f > "$FUNNEL" &
+(for x in $(seq $(parallel --number-of-threads)); do echo "dummy"; done; cat "$FUNNEL") | env_parallel --lb -q rate-limit 

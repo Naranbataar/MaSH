@@ -2,14 +2,17 @@
 
 prefix(){
 	MASH_PREFIX=( $1 )
+	export "MASH_PREFIX"
 }
 
 dispatch(){
+	export -f "$2"
 	eval "MASH_DISPATCH_$1='$2'"
 	export "MASH_DISPATCH_$1"
 }
 
 xcommand(){
+	export -f "$1"
 	NAMES=( $2 )
 	for NAME in "${NAMES[@]}"; do
 		eval "MASH_COMMAND_$NAME='$1'"
@@ -63,8 +66,7 @@ get-args(){
 }
 
 parse-commands(){
-	CONTENT=$(echo "$1" | jq '.content')
-	CONTENT=${CONTENT#'"'}; CONTENT=${CONTENT%'"'}
+	CONTENT="$(echo "$1" | grep -oP '(?<="content":").*?(?=",)')"
 	if [ -n "$MASH_PREFIX" ]; then
 		for TEST_PREFIX in "${MASH_PREFIX[@]}"; do
 			if [[ "$CONTENT" == "$TEST_PREFIX"* ]]; then
@@ -80,6 +82,7 @@ parse-commands(){
 	[ "$BOT" == "true" ] && exit
 
 	CONTENT=${CONTENT#$PREFIX}
+
 	CONTENT=("${CONTENT[@]//\\\"/\"}")
 	CONTENT=$(xargs printf '%s\n' <<< "$CONTENT")
 
@@ -98,15 +101,14 @@ parse-commands(){
 }
 
 parse-event(){
-	T=$(echo "$1" | jq -r '.t')
-	D=$(echo "$1" | jq -cM '.d')
+	E="$1"; T="${E%% *}"; D="${E#"$T "}"
 	F="MASH_DISPATCH_$T"; F="${!F}"	
 	[ -n "$F" ] && "$F" "$D"
 }
 
 bot-loop(){
 	. `which env_parallel.bash`
-	env_parallel parse-event "{}" < <(ws-start)
+	env_parallel --lb -q parse-event '{}' < <(ws-start)
 }
 
 if [[ $_ == $0 ]]; then

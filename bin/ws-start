@@ -1,12 +1,8 @@
 #!/bin/bash
 [ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
-[ -d "$MASH_STATUS_DIR" ] || mkdir "$MASH_STATUS_DIR"
+rm -rf "$MASH_STATUS_DIR"; mkdir "$MASH_STATUS_DIR"
+trap "rm -rf $MASH_STATUS_DIR; kill 0" EXIT
 export MASH_STATUS_DIR
-
-LOGF="$MASH_STATUS_DIR/ws_log"
-rm -f $LOGF; touch $LOGF
-
-rm -f "$MASH_STATUS_DIR/"*'.lock'
 
 shard-loop(){
 	until ws-shard "$1" "$2"; do
@@ -25,6 +21,3 @@ for ((I=0;I<$SHARDS;I++)); do
 done
 
 wait
-
-
-

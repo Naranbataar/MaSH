@@ -7,5 +7,5 @@ if [ -z "$1" ]; then
 fi
 
 read -r TEXT
-exec 4<> "$MASH_STATUS_DIR/ws_funnel_${2:-0}"
-echo "{\"op\": $1, \"d\": $TEXT}" | jq -cM >&4
+FUNNEL="$MASH_STATUS_DIR/ws_funnel_${2:-0}"
+echo "{\"op\":$1,\"d\":$TEXT}" > "$FUNNEL" 
