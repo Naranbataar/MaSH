@@ -16,7 +16,6 @@ LATF="$MASH_STATUS_DIR/ws_latency_$1"; touch "$LATF"
 ACKF="$MASH_STATUS_DIR/ws_lastack_$1"; touch "$ACKF"
 SESF="$MASH_STATUS_DIR/ws_sessionid_$1"
 
-ws-funnel "$1" &
 trap "kill -9 $! 2>/dev/null" EXIT
 
 last-seq(){

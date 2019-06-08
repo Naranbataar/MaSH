@@ -7,5 +7,5 @@ if [ -z "$1" ]; then
 fi
 
 read -r TEXT
-FUNNEL="$MASH_STATUS_DIR/ws_funnel_${2:-0}"
-echo "{\"op\":$1,\"d\":$TEXT}" > "$FUNNEL" 
+PIPE="$MASH_STATUS_DIR/ws_pipe_${2:-0}"
+echo "{\"op\":$1,\"d\":$TEXT}" > "$PIPE" 
