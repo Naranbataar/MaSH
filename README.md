@@ -22,6 +22,7 @@ interact using the standart input/output
 #!/bin/bash
 PATH="$PATH:$(realpath ./mash/bin)"
 source commands
+source websocket
 
 MASH_AUTH_TOKEN='TOKEN'; export MASH_AUTH_TOKEN
 MASH_AUTH_BOT=1; export MASH_AUTH_BOT

@@ -1,0 +1,122 @@
+#!/bin/bash
+[ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
+rm -rf "$MASH_STATUS_DIR"; mkdir "$MASH_STATUS_DIR"
+trap "rm -rf $MASH_STATUS_DIR; kill 0" EXIT
+export MASH_STATUS_DIR
+
+. `which env_parallel.bash`
+
+_last-seq(){
+        SEQ="$(tail -n1 "$LOGF" | grep -oP '(?<="s":).*?(?=,)')"; echo "${SEQ:-0}"
+}
+
+_dispatch-event(){
+        #read -r PAYLOAD
+        PAYLOAD="$1"
+
+        OP="$(echo "$PAYLOAD" | grep -oP '(?<="op":).*?(?=,)')"
+        case $OP in
+        0)
+        echo "$PAYLOAD" >> "$LOGF"
+
+        TSD="$(echo "$PAYLOAD" | grep -oP '(?<="t":").*?(?=",)|(?<="s":).*?(?=,)|(?<="d":).*' | head --bytes -2)"
+        mapfile -t TSD <<< "$TSD"
+        T="${TSD[0]}"; S="${TSD[1]}"; D="${TSD[2]}"
+
+        [ "$T" == 'READY' ] && (echo "$D" | jq -r '.session_id' > "$SESF")
+	
+	F="MASH_DISPATCH_$T"; F="${!F}"
+	[ -n "$F" ] && "$F" "$D";;
+        7)
+        echo "null" | ws-send -1 "$SHARD";;
+        9)
+        rm -f "$SESF"; rm -f "$LOGF"
+        echo "null" | ws-send -1 "$SHARD";;
+        10)
+
+        if [ -f "$SESF" ]; then
+                echo "{\"token\": \"$MASH_AUTH_TOKEN\", \"session_id\": \"$(cat "$SESF")\", \"seq\": $(_last-seq)}" | ws-send 6 "$SHARD"
+        else
+                echo "{\"token\": \"$MASH_AUTH_TOKEN\", \"properties\": {\"\$os\": \"linux\",\"\$browser\": \"mash\",\"\$device\": \"mash\"}, \"shard\": [$SHARD, $SHARDS]}" | ws-send 2 "$SHARD"
+        fi
+
+        INTERVAL=$(echo "$PAYLOAD" | jq -r '.d|.heartbeat_interval'); WAIT=5
+        INTERVAL="$(awk "BEGIN { print ($INTERVAL / 1000) - $WAIT  }")"
+
+        while : ; do
+                LACK="$(date +%s%N)"
+                _last-seq | ws-send 1 "$SHARD"
+
+                sleep "$WAIT"
+                ACK=$(cat "$ACKF"); ACK="${ACK:-$LACK}"
+                [ "$LACK" -ge "$ACK" ] && (echo "null" | ws-send -1 "$SHARD")
+                echo "$(( ACK - LACK ))" > "$LATF"
+                sleep "$INTERVAL"
+        done ;;
+        11) echo "$(date +%s%N)" > "$ACKF" ;;
+        esac
+}
+
+_ws-shard(){
+	SHARD="$1"; SHARDS="$2"
+
+	PIPE="$MASH_STATUS_DIR/ws_pipe_$1"
+	rm -f "$PIPE"; mkfifo "$PIPE"
+	tail -f > "$PIPE" &
+
+	LOGF="$MASH_STATUS_DIR/ws_log_$1"; touch "$LOGF"
+	LATF="$MASH_STATUS_DIR/ws_latency_$1"; touch "$LATF"
+	ACKF="$MASH_STATUS_DIR/ws_lastack_$1"; touch "$ACKF"
+	SESF="$MASH_STATUS_DIR/ws_sessionid_$1"
+
+	URL="wss://gateway.discord.gg/?v=6&encoding=json"; DUMMY="{\"op\":-1, \"d\": null}"; JOBS="${MASH_PARALLEL_JOBLIMIT:-250}"
+	(websocat -S -tnE "$URL" < "$PIPE") | (for x in $(seq "$JOBS"); do echo "$DUMMY"; done; cat) | env_parallel -j "$JOBS" --lb -q -N1 _dispatch-event 
+	exit 1
+}
+
+_shard-loop(){
+	until _ws-shard "$1" "$2"; do
+		echo "Shard $1: crashed with exit code $?... Reconnecting..." >&2
+		sleep 1
+	done
+}
+
+ws-start(){
+	#[ "$MASH_AUTH_BOT" == "1" ] && SHARDS=$(echo " " | dapi GET "/gateway/bot" | jq -r '.shards//empty')
+	SHARDS="${SHARDS:-1}"
+	for ((I=0;I<$SHARDS;I++)); do
+	       	_shard-loop "$I" "$SHARDS" &
+       	done; wait
+}
+
+ws-send(){
+	[ -z "$1" ] && exit 1
+	read -r TEXT; echo "{\"op\":$1,\"d\":$TEXT}" > "$MASH_STATUS_DIR/ws_pipe_${2:-0}"
+}
+
+ewait(){
+	[ -z "$1" ] && exit 1
+	QUERY="fromstream(0|truncate_stream(inputs)) | select($1)"
+	while IFS= read -r EVENT || [[ -n "$EVENT" ]]; do
+		echo "$EVENT"; exit
+	done < <(timeout "${2:-0}" tail -n0 -qf "$MASH_STATUS_DIR/ws_log_"* | jq -cM --stream --unbuffered "$QUERY") 
+}
+
+if [[ $_ == $0 ]]; then
+	echo "Usage: source websocket" >&2
+	echo "Websocket connection and functions"
+	echo ""
+	echo "This script needs to be sourced to work properly"
+	echo "The avaliable functions are listed below"
+	echo ""
+        echo "ws-start"
+        echo "    Starts the ws connection and dispatch the events"
+	echo "    using MASH_DISPATCH_{EVENT} environment variables"
+	echo ""
+	echo "ws-send {OP_CODE} [SHARD]"
+	echo "    Sends the JSON data from the STDIN to the gateway, default by SHARD 0"
+	echo ""
+	echo "ewait {CONDITION} [TIMEOUT]" >&2
+       	echo "    Watches the log until it finds a event that meet the jq condition, and outputs it"
+fi
+
