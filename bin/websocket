@@ -82,7 +82,7 @@ _shard-loop(){
 }
 
 ws-start(){
-	#[ "$MASH_AUTH_BOT" == "1" ] && SHARDS=$(echo " " | dapi GET "/gateway/bot" | jq -r '.shards//empty')
+	[ "$MASH_AUTH_BOT" == "1" ] && SHARDS=$(echo " " | dapi GET "/gateway/bot" | jq -r '.shards//empty')
 	SHARDS="${SHARDS:-1}"
 	for ((I=0;I<$SHARDS;I++)); do
 	       	_shard-loop "$I" "$SHARDS" &
@@ -109,8 +109,8 @@ if [[ $_ == $0 ]]; then
 	echo "This script needs to be sourced to work properly"
 	echo "The avaliable functions are listed below"
 	echo ""
-        echo "ws-start"
-        echo "    Starts the ws connection and dispatch the events"
+	echo "ws-start"
+	echo "    Starts the ws connection and dispatch the events"
 	echo "    using MASH_DISPATCH_{EVENT} environment variables"
 	echo ""
 	echo "ws-send {OP_CODE} [SHARD]"
