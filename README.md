@@ -17,7 +17,7 @@ interact using the standart input/output
 - `parallel`
 
 ## Example
-
+main
 ```bash
 #!/bin/bash
 PATH="$PATH:$(realpath ./mash/bin)"
@@ -35,18 +35,22 @@ on-resume(){ echo "Resumed"; }
 dispatch READY on-ready
 dispatch RESUMED on-resume
 
-speak(){
-	content="<@${CTX[0]}> wants me to say: '$@'"
-	channel="${CTX[1]}"
-	result="$(set-args content channel | message send)"
+xcommand 'bin/speak' 'say speak tell' '(.author|.id),.channel_id'
 
-	eval "$(echo "$result" | get-args id)"
-	echo "$id"
-}
+ws-start
+```
+bin/speak
+```bash
+#!/bin/bash
+source rest
+source utils
 
-xcommand speak 'say speak tell' '(.author|.id),.channel_id'
+content="<@${CTX[0]}> wants me to say: '$@'"
+channel="${CTX[1]}"
+result="$(set-args content channel | message send)"
 
-bot-loop
+eval "$(echo "$result" | get-args id)"
+echo "$id"
 ```
 
 ## Environment
@@ -54,6 +58,9 @@ bot-loop
 - `MASH_AUTH_BOT` - `1` for bot users, `0` for user bots
 - `MASH_STATUS_DIR` - The directory where the scripts will save
 their pipes and statuses
+- `MASH_DISPATCH_*` - Shards will dispatch the events to functions that
+environment variables with their respective names are referencing
 
 ## Todo
 - Voice Support
+

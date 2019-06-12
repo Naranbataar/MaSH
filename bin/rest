@@ -1,0 +1,893 @@
+#!/bin/bash
+source utils
+
+channel() {
+	case $1 in
+	'get'|'new'|'edit'|'del'|'list'|'dm_add'|'dm_remove'|'pos_edit'|'perm_edit'|'perm_delete')
+		read -r TEXT
+		case $1 in
+		'get')
+			CHANNEL=$(echo "$TEXT" | jq -r '.id')
+			echo " " | dapi GET "/channels/$CHANNEL" ;;
+		'new')
+			GUILD=$(echo "$TEXT" | jq -r '.guild')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'name,type,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
+			echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/channels" ;;
+		'edit')
+			CHANNEL=$(echo "$TEXT" | jq -r '.id')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'name,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
+			echo "$PAYLOAD" | dapi PATCH "/channels/$CHANNEL" ;;
+		'del')
+			CHANNEL=$(echo "$TEXT" | jq -r '.id')
+			echo " " | dapi DELETE "/channels/$CHANNEL" ;;
+		'list')
+			GUILD=$(echo "$TEXT" | jq -r '.guild')
+			echo " " | dapi GET "/guilds/$GUILD/channels" ;;
+		'dm_add')
+			CHANNEL=$(echo "$TEXT" | jq -r ".id");
+			USER=$(echo "$TEXT" | jq -r ".user");
+			echo " " | dapi PUT "/channels/$CHANNEL/recipients/$USER" ;;
+		'dm_remove')
+			CHANNEL=$(echo "$TEXT" | jq -r ".id");
+			USER=$(echo "$TEXT" | jq -r ".user");
+			echo " " | dapi DELETE "/channels/$CHANNEL/recipients/$USER" ;;
+		'pos_edit')
+			GUILD=$(echo "$TEXT" | jq -r '.guild')
+			PAYLOAD=$(echo "$TEXT" | jq '.data')
+			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/channels" ;;
+		'perm_edit')
+			OW=$(echo "$TEXT" | jq -r '.id')
+			CHANNEL=$(echo "$TEXT" | jq -r '.channel')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'allow,deny,type')
+
+			echo "$PAYLOAD" | dapi PUT "/channels/$CHANNEL/permissions/$OW" ;;
+		'perm_delete')
+			OW=$(echo "$TEXT" | jq -r '.id')
+			CHANNEL=$(echo "$TEXT" | jq -r '.channel')
+			echo " " | dapi DELETE "/channels/$CHANNEL/permissions/$OW" ;;
+		esac ;;
+	*)
+		echo "Usage: channel {COMMAND}" >&2
+		echo "Interacts with channel endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "get: {id}"
+		echo "    id: (snowflake) the id of the channel"
+		echo ""
+		echo "new: {guild} {name} [type] [topic] [bitrate] [user_limit] "
+		echo "[rate_limit_per_user] [position] [permission_overwrites]"	
+		echo "[parent_id] [nsfw]"
+		echo "    guild: (snowflake) the id of the target guild"
+		echo "    name: (string) channel name (2-100)"
+		echo "    type: (integer) the type of channel"
+		echo "    topic: (string) channel topic (0-1024)"
+		echo "    bitrate: (integer) the bitrate of the voice channel (voice only)"
+		echo "    user_limit: (integer) the user limit of the voice channel (voice only)"
+		echo "    rate_limit_per_user: (integer) amount of seconds a user has to wait before "
+		echo "        sending another message (0-21600)"
+		echo "    position: (integer) sorting position of the channel "
+		echo "    permission_overwrites: (array) array of overwrite objects "
+		echo "        the channel's permission overwrites"
+		echo "    parent_id: (snowflake): id of the parent category for a channel"
+		echo "    nsfw: (boolean) whether the channel is nsfw"
+		echo ""
+		echo "edit: {id} {guild} {name} [topic] [bitrate] [user_limit] "
+		echo "[rate_limit_per_user] [position] [permission_overwrites]"	
+		echo "[parent_id] [nsfw]"
+		echo "    id: (snowflake) the id of the channel"
+		echo "    name: (string): channel name (2-100)"
+		echo "    topic: (string) channel topic (0-1024)"
+		echo "    bitrate: (integer) the bitrate of the voice channel; (8000-96000, 128000 VIP) "
+		echo "    user_limit: (integer) the user limit of the voice channel (0-99) "
+		echo "    rate_limit_per_user: (integer) amount of seconds a user has to wait before "
+		echo "        sending another message (0-21600)"
+		echo "    position: (integer) the position of the channel"
+		echo "    permission_overwrites: (array) array of overwrite objects channel or "
+		echo "        category-specific permissions "
+		echo "    parent_id: (snowflake) id of the new parent category for a channel "
+		echo "    nsfw: (boolean) whether the channel is nsfw"
+		echo ""
+		echo "del: {id}"
+		echo "    id: (snowflake) the id of the channel"
+		echo ""
+		echo "list: {guild}"
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "dm_add: {id} {user}"
+		echo "    id: (snowflake) the id of the channel"
+		echo "    user: (snowflake) the id of the user"
+		echo ""
+		echo "dm_remove: {id} {user}"
+		echo "    id: (snowflake) the id of the channel"
+		echo "    user: (snowflake) the id of the user"
+		echo ""	
+		echo "pos_edit: {guild} {data}"
+		echo "    guild: (snowflake) the id of the target guild"
+		echo "    data: (array) an array of (snowflake, integer), containing the channel id"
+		echo "        and the position"
+		echo ""
+		echo "perm_edit: {id} {allow} {deny} {type}"
+		echo "    id: (snowflake) the id of the permission overwrite"
+		echo "    channel: (snowflake) the id of the channel"
+		echo "    allow: (integer) the bitwise value of all allowed permissions"
+		echo "    deny: (integer) the bitwise value of all disallowed permissions"
+		echo "    type: (string) 'member' for an user or 'role' for a role"
+		echo ""
+		echo "perm_delete: {id} {channel}"
+		echo "    id: (snowflake) the id of the permission overwrite"
+		echo "    channel: (snowflake) the id of the channel"
+		exit 1 ;;
+		esac
+}
+
+emoji() {
+	case $1 in
+	'get'|'new'|'edit'|'del'|'list')
+		read -r TEXT
+		GUILD=$(echo "$TEXT" | jq -r ".guild")
+		case $1 in
+		'get')
+			EMOJI=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi GET "/guilds/$GUILD/emojis/$EMOJI" ;;
+		'new')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'name,image,roles')
+			echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/emojis" ;;
+		'edit')
+			EMOJI=$(echo "$TEXT" | jq -r ".id")
+			PAYLOAD=$(echo "$TEXT" | format-args json 'name,roles')
+			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/emojis/$EMOJI" ;;
+		'del')
+			EMOJI=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi DELETE "/guilds/$GUILD/emojis/$EMOJI" ;;
+		'list')
+			echo " " | dapi GET "/guilds/$GUILD/emojis" ;;
+		esac ;;
+	*)
+		echo "Usage: emoji {COMMAND}" >&2
+		echo "Interacts with emoji endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "get: {id} {guild}"
+		echo "    id: (snowflake) the id of the emoji"
+		echo "    guild: (snowflake) the target guild"
+		echo ""
+		echo "new: {guild} {name} {image} {roles}"
+		echo "    guild: (snowflake) the target guild"
+		echo "    name: (string) name of the emoji"
+		echo "    image: (uri image) the data of the 128x128 image"
+		echo "    roles: (array) roles for which the emoji will be whitelisted"
+		echo ""
+		echo "edit: {id} {guild} {name} {roles}"
+		echo "    id: (snowflake) the id of the emoji"
+		echo "    guild: (snowflake) the target guild"
+		echo "    name: (string) name of the emoji"
+		echo "    roles: (array) roles for which the emoji will be whitelisted"
+		echo ""
+		echo "del: {id} {emoji}"
+		echo "    id: (snowflake) the id of the emoji"
+		echo "    guild: (snowflake) the target guild"
+		echo ""
+		echo "list: {guild}"
+		echo "    guild: (snowflake) the target guild"
+		exit 1 ;;
+	esac
+}
+
+guild (){
+	case $1 in
+	'get'|'new'|'edit'|'del'|'embed_get'|'embed_edit'|'audit_log'|'vanity_url'|'widget')
+		read -r TEXT
+		GUILD=$(echo "$TEXT" | jq -r '.id')
+		case $1 in
+		'get')
+			echo " " | dapi GET "/guilds/$GUILD" ;;
+		'new')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'name,region,icon,verification_level,default_message_notifications,explicit_content_filter,roles,channels')
+			echo "$PAYLOAD" | dapi POST "/guilds" ;;
+		'edit')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'name,region,verification_level,default_message_notifications,explicit_content_filter,afk_channel_id,afk_timeout,icon,owner_id,splash,system_channel_id')
+			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD" ;;
+		'del')
+			echo " " | dapi DELETE "/guilds/$GUILD" ;;
+		'embed_get')
+			echo " " | dapi GET "/guilds/$GUILD/embed" ;;
+		'embed_edit')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'enabled,channel_id')
+			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/embed" ;;
+		'audit_log')
+			QUERY=$(echo "$TEXT" | format-args url 'user_id,action_type,before,limit')
+			echo " " | dapi GET "/guilds/$GUILD/audit-logs$QUERY" ;;
+		'vanity_url')
+			echo " " | dapi GET "/guilds/$GUILD/vanity-url" ;;
+		'widget')
+			QUERY=$(echo "$TEXT" | format-args url 'style')
+			echo " " | dapi GET "/guilds/$GUILD/widget.png$QUERY" ;;
+		esac ;;
+	*)
+		echo "Usage: guild {COMMAND}" >&2
+		echo "Interacts with guild endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "get: {id}"
+		echo "    id: (snowflake) the id of the guild"
+		echo ""
+		echo "new: [name] [region] [icon] [verification_level] "
+		echo "[default_message_notifications] [explicit_content_filter]"
+		echo "[roles] [channels]"
+		echo "    name: (string) name of the guild (2-100)"
+		echo "    region: (string) voice region id"
+		echo "    icon: (uri image) 128x128 jpeg image for the icon"
+		echo "    verification_level: (integer) verification level"
+		echo "    default_message_notifications: (integer) default "
+		echo "        message notification level"
+		echo "    explicit_content_filter: (integer) explicit content "
+		echo "        filter level"
+		echo "    roles: (array) new guild (partial) roles"
+		echo "    channels: (array) new guild's (partial) channels"
+		echo ""
+		echo "edit: {id} [name] [region] [verification_level] "
+		echo "[default_message_notifications] [explicit_content_filter]"
+		echo "[roles] [channels]"
+		echo "    id: (snowflake) the id of the guild"
+		echo "    name: (string) name of the guild (2-100)"
+		echo "    region: (string) voice region id"
+		echo "    icon: (uri image) 128x128 jpeg image for the icon"
+		echo "    verification_level: (integer) verification level"
+		echo "    default_message_notifications: (integer) default "
+		echo "        message notification level"
+		echo "    explicit_content_filter: (integer) explicit content "
+		echo "        filter level"
+		echo "    afk_channel_id: (snowflake) id for afk channel"
+		echo "    afk_timeout: (integer) afk timeout in seconds"
+		echo "    icon: (uri image) 128x128 jpeg image for the icon"
+		echo "    owner_id: (snowflake) user to transfer guild ownership to"
+		echo "    splash: (uri image) 128x128 jpeg image for the guild splash"
+		echo "    system_channel_id: (snowflake) the id of the channel to which"
+		echo "        system messages are sent"
+		echo ""
+		echo "del: {id}"
+		echo "    id: (snowflake) the id of the guild"
+		echo ""
+		echo "embed_get: {id}"
+		echo "    id: (snowflake) the id of the guild"
+		echo ""
+		echo "embed_edit: {id} [enabled] [channel_id]"
+		echo "    id: (snowflake) the id of the guild"
+		echo "    enabled: (snowflake) whether the embed is enabled"
+		echo "    channel_id: (snowflake) the embed channel id"
+		echo ""
+		echo "audit_log: {id} [user_id] [action_type] [before] [limit]"
+		echo "    id: (snowflake) the id of the guild"
+		echo "    user_id: (snowflake) filter for actions made by a user"
+		echo "    action_type: (integer) the type of event"
+		echo "    before: (snowflake) filter the log before a certain id"
+		echo "    limit: (integer) how many entries are returned (1-100)"
+		echo ""
+		echo "vanity_url: {id}"
+		echo "    id: (snowflake) the id of the guild"
+		echo ""
+		echo "widget: {id}"
+		echo "    id: (snowflake) the id of the guild"
+		echo "    style: (string) the style of the widget"
+		exit 1 ;;
+	esac
+}
+
+integration() {
+	case $1 in
+	'get'|'new'|'edit'|'del'|'sync')
+		read -r TEXT
+		GUILD=$(echo "$TEXT" | jq -r ".guild");
+		case $1 in
+		'get')
+			echo " " | dapi GET "/guilds/$GUILD/integrations" ;;
+		'new')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'id,type')
+			echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/integrations" ;;
+		'edit')
+			INTG=$(echo "$TEXT"| jq -r ".id")
+			PAYLOAD=$(echo "$TEXT" | format-args json 'expire_behavior,expire_grace_period,enable_emoticons')
+			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/integrations/$INTG" ;;
+		'del')
+			INTG=$(echo "$TEXT"| jq -r ".id")
+			echo " " | dapi DELETE "/guilds/$GUILD/integrations/$INTG" ;;
+		'sync')
+			INTG=$(echo "$TEXT"| jq -r ".id")
+			echo " " | dapi POST "/guilds/$GUILD/integrations/$INTG/sync" ;;
+		esac ;;
+	*)
+		echo "Usage: integration {COMMAND}" >&2
+		echo "Interacts with guild integration endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "get: {guild} "
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "new: {id} {guild} {type}"
+		echo "    id: (snowflake) the id of the integration"
+		echo "    guild: (snowflake) the id of the guild"
+		echo "    type: (string) the type of the integration"
+		echo ""
+		echo "edit: {id} {guild} [expire_behavior] [expire_grace_period] "
+		echo "[enable_emoticons]"
+		echo "    id: (snowflake) the id of the integration"
+		echo "    guild: (snowflake) the id of the guild"
+		echo "    expire_behavior: (integer) the behavior when an "
+		echo "        integration subscription lapses"
+		echo "    expire_grace_period: (integer) period in seconds "
+		echo "        where the integration will ignore lapsed "
+		echo "        subscriptions"
+		echo "    enable_emoticons (boolean) whether emoticons should be "
+		echo "        synced for this integration"
+		echo ""
+		echo "del: {id} {guild}"
+		echo "    id: (snowflake) the id of the integration"
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "sync: {id} {guild}"
+		echo "    id: (snowflake) the id of the integration"
+		echo "    guild: (snowflake) the id of the guild"
+		exit 1 ;;
+	esac
+}
+
+invite() {
+	case $1 in
+	'get'|'new'|'del'|'list_ch'|'list_g')
+		read -r TEXT
+		case $1 in
+		'get')
+			INV=$(echo "$TEXT" | jq -r ".code")
+			echo " " | dapi GET "/invites/$INV" ;;
+		'new')
+			CHANNEL=$(echo "$TEXT" | jq -r ".channel")
+			PAYLOAD=$(echo "$TEXT" | format-args json 'max_age,max_uses,temporary,unique')
+			echo "$PAYLOAD" | dapi POST "/channels/$CHANNEL/invites" ;;
+		'del')
+			INV=$(echo "$TEXT" | jq -r ".code")
+			echo " " | dapi DELETE "/invites/$INV" ;;
+		'list_ch')
+			CHANNEL=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi GET "/channels/$CHANNEL/invites" ;;
+		'list_g')
+			GUILD=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi GET "/guilds/$GUILD/invites" ;;
+		esac ;;
+	*)
+		echo "Usage: invite {COMMAND}" >&2
+		echo "Interacts with invite endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "get: {code}"
+		echo "    code: (string) the code of the invite"
+		echo ""
+		echo "new: {channel} [max_age] [max_uses] [temporary] [unique]"
+		echo "    channel: (snowflake) the id of the channel"
+		echo "    max_age: (integer) seconds for the invite to be valid, 0 for forever (default: 86400)"
+		echo "    max_uses: (integer) max number of uses, 0 for unlimited (default: 0)"
+		echo "    temporary: (boolean) if the invite only grants temporary membership (default:false)"
+		echo "    unique: (boolean) if true, the invite can be used only one time (default: false)"
+		echo ""
+		echo "del: {code}"
+		echo "    code: (string) the code of the invite"
+		echo ""
+		echo "list_ch: {id}"
+		echo "    id: (snowflake) the id of the channel"
+		echo ""
+		echo "list_g: {id}"
+		echo "    id: (snowflake) the id of the guild"
+		exit 1 ;;
+	esac
+}
+
+member() {
+	case $1 in
+	'get'|'new'|'edit'|'del'|'list'|'my_nick_edit')
+		read -r TEXT
+		GUILD=$(echo "$TEXT" | jq -r ".guild")
+		case $1 in
+		'get')
+			USER=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi GET "/guilds/$GUILD/members/$USER" ;;
+		'new')
+			USER=$(echo "$TEXT" | jq -r ".id")
+			PAYLOAD=$(echo "$TEXT" | format-args json 'access_token,nick,roles,mute,deaf')
+			echo "$PAYLOAD" | dapi PUT "/guilds/$GUILD/members/$USER" ;;
+		'edit')
+			USER=$(echo "$TEXT" | jq -r ".id")
+			PAYLOAD=$(echo "$TEXT" | format-args json 'nick,roles,mute,deaf,channel_id')
+			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/members/$USER" ;;
+		'del')
+			USER=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi DELETE "/guild/$GUILD/members/$USER" ;;
+		'list')
+			QUERY=$(echo "$TEXT" | format-args url 'limit,after')
+			echo " " | dapi GET "/guilds/$GUILD/members$QUERY" ;;
+		'rename_me')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'nick')
+			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/members/@me/nick" ;;
+		esac ;;
+	*)
+		echo "Usage: member {COMMAND}" >&2
+		echo "Interacts with member endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "get: {id} {guild}"
+		echo "    id: (snowflake) the id of the user"
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "new: {id} {guild} {access_token} [nick] [roles] [mute] [deaf]"
+		echo "    id: (snowflake) the id of the user"
+		echo "    guild: (snowflake) the id of the guild"
+		echo "    access_token: (string) an oauth2 access token granted "
+		echo "        to the bot's application for the user you want to "
+		echo "        add to the guild "
+		echo "    nick: (string) value to set user's nickname to "
+		echo "    roles: (array) array of role ids the member is assigned"
+		echo "    mute: (boolean) whether the user is muted in voice channels"
+		echo "    deaf: (boolean) whether the user is deafened in voice channels"
+		echo ""
+		echo "edit: {id} {guild} {access_token} [nick] [roles] [mute] [deaf] [channel_id]"
+		echo "    id: (snowflake) the id of the user"
+		echo "    guild: (snowflake) the id of the guild"
+		echo "    nick: (string) value to set user's nickname to "
+		echo "    roles: (array) array of role ids the member is assigned"
+		echo "    mute: (boolean) whether the user is muted in voice channels"
+		echo "    deaf: (boolean) whether the user is deafened in voice channels"
+		echo "    channel_id: (snowflake|null) id of the voice channel to move user to"
+		echo ""
+		echo "del: {id} {guild}"
+		echo "    id: (snowflake) the id of the user"
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "list: {guild} [limit] [after]"
+		echo "    guild: (snowflake) the id of the guild"
+		echo "    limit: (integer) max number of members to return (1-1000)"
+		echo "    after: (snowflake) the highest user id in the previous page"
+		echo ""
+		echo "rename_me: {guild} {nick}"
+		echo "    guild: (snowflake) the id of the guild"
+		echo "    nick: (string) value to set your nickname to"
+		exit 1 ;;
+	esac
+}
+
+message() {
+	case $1 in
+	'type'|'get'|'send'|'edit'|'delete'|'pin'|'unpin'|'pins'|'bulk_get'|'bulk_delete')
+		read -r TEXT
+		CHANNEL=$(echo "$TEXT" | jq -r '.channel')
+		case $1 in
+		'type')
+			echo " " | dapi POST "/channels/$CHANNEL/typing" ;;
+		'get')
+			MSG=$(echo "$TEXT" | jq -r '.id')
+			echo " " | dapi GET "/channels/$CHANNEL/messages/$MSG" ;;
+		'send')
+			FILES=$(echo "$TEXT" | jq -cM '.files//empty')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'content,embed,nonce,tts')
+			if [[ -z $FILES ]]; then
+				echo "$PAYLOAD" | dapi POST "/channels/$CHANNEL/messages"
+			else
+				echo "$PAYLOAD" | dapi @FILES "/channels/$CHANNEL/messages" "$FILES"
+			fi ;;
+		'edit')
+			MSG=$(echo "$TEXT" | jq -r ".id")
+			PAYLOAD=$(echo "$TEXT" | format-args json 'content,embed')
+			echo "$PAYLOAD" | dapi PATCH "/channels/$CHANNEL/messages/$MSG" ;;
+		'delete')
+			MSG=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi DELETE "/channels/$CHANNEL/messages/$MSG" ;;
+		'pin')
+			MSG=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi PUT "/channels/$CHANNEL/pins/$MSG" ;;
+		'unpin')
+			MSG=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi DELETE "/channels/$CHANNEL/pins/$MSG" ;;
+		'pins')
+			echo " " | dapi GET "/channels/$CHANNEL/pins" ;;
+		'bulk_get')
+			QUERY=$(echo "$TEXT" | format-args url 'before,after,around,limit')
+			echo " " | dapi GET "/channels/$CHANNEL/messages$QUERY" ;;
+		'bulk_delete')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'messages')
+			echo "$PAYLOAD" | dapi POST "/channels/$CHANNEL/messages/bulk-delete" ;;
+		esac ;;
+	*)
+		echo "Usage: message {COMMAND}" >&2
+		echo "Interacts with message endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "type: {channel}"
+		echo "    channel: (snowflake) the target channel"
+		echo ""
+		echo "get: {id} {channel}"
+		echo "    id: (snowflake) the id of the message"
+		echo "    channel: (snowflake) the target channel"
+		echo ""
+		echo "send: {channel} [*content] [*embed] [*files] [nonce] [tts]"
+		echo "    channel: (snowflake) the target channel"
+		echo "    content: (string) the text of the message (0-2000)"
+		echo "    embed: (embed object)  the embed of the message"
+		echo "    files: (array) an array of paths, the files to be uploaded"
+		echo "    nonce: (snowflake) the nonce of the message"
+		echo "    tts: (boolean) whether the message is TTS or now"
+		echo ""
+		echo "edit: {id} {channel} [content] [embed]"
+		echo "    id: (snowflake) the id of the message"
+		echo "    channel: (snowflake) the target channel"
+		echo "    content: (string) the new text of the message (0-2000)"
+		echo "    embed: (embed object) the new embed of the message"
+		echo ""
+		echo "delete: {id} {channel}"
+		echo "    id: (snowflake) the id of the message"
+		echo "    channel: (snowflake) the target channel"
+		echo ""
+		echo "pin: {id} {channel}"
+		echo "    id: (snowflake) the id of the message"
+		echo "    channel: (snowflake) the target channel"
+		echo ""
+		echo "unpin: {id} {channel}"
+		echo "    id: (snowflake) the id of the message"
+		echo "    channel: (snowflake) the target channel"
+		echo ""
+		echo "pins: {channel}"
+		echo "    channel: (snowflake) the target channel"
+		echo ""
+		echo "bulk_get: {channel} [around|before|after] [limit]"
+		echo "    channel: (snowflake) the target channel"
+		echo "    around: (snowflake) get messages around this message id"
+		echo "    before: (snowflake) get messages before this message id"
+		echo "    after: (snowflake) get messages after this message id"
+		echo "    limit: (integer)  max number of messages to return (1-100)"
+		echo ""
+		echo "bulk_delete: {channel} {messages}"
+		echo "    channel: (snowflake) the target channel"
+		echo "    messages: (array) an array of the message ids"
+		exit 1 ;;
+	esac
+}
+
+moderation() {
+	case $1 in
+	'ban'|'unban'|'get_ban'|'get_bans'|'prune'|'count_prune')
+		read -r TEXT
+		GUILD=$(echo "$TEXT" | jq -r ".guild");
+		case $1 in
+		'ban')
+			QUERY=$(echo "$TEXT" | format-args url 'reason,delete_message_days' | tr '_' '-')
+			echo " " | dapi PUT "/guilds/$GUILD/bans/$USER$QUERY" ;;
+		'unban')
+			USER=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi DELETE "/guilds/$GUILD/bans/$USER" ;;
+		'get_ban')
+			USER=$(echo "$TEXT"| jq -r ".id")
+			echo " " | dapi GET "/guilds/$GUILD/bans/$USER" ;;
+		'get_bans')
+			echo " " | dapi GET "/guilds/$GUILD/bans" ;;
+		'prune')
+			QUERY=$(echo "$TEXT" | format-args url 'days,compute_prune_count' | tr '_' '-')
+			echo " " | dapi POST "/guilds/$GUILD/prune$QUERY" ;;
+		'count_prune')
+			QUERY=$(echo "$TEXT" | format-args url 'days')
+			echo " " | dapi GET "/guilds/$GUILD/prune$QUERY" ;;
+		esac ;;
+	*)
+		echo "Usage: moderation {COMMAND}" >&2
+		echo "Interacts with moderation endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "ban: {id} {guild} [reason] [delete_message_days]"
+		echo "    id: (snowflake) the id of the user"
+		echo "    guild: (snowflake) the id of the guild"
+		echo "    reason: (string) reason for the ban"
+		echo "    delete_message_days: (integer) number of"
+		echo "        days to delete messages for (0-7)"
+		echo ""
+		echo "unban: {id} {guild}"
+		echo "    id: (snowflake) the id of the user"
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "get_ban: {id} {guild}"
+		echo "    id: (snowflake) the id of the user"
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "get_bans: {guild}"
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "prune: {guild} [days] [compute_prune_count]"
+		echo "    guild: (snowflake) the id of the guild"
+		echo "    days: (snowflake) number of days to prune (>=1)"
+		echo "    compute_prune_count: (boolean) whether 'pruned'"
+		echo "        is returned"
+		echo ""
+		echo "count_prune: {guild} [days]"
+		echo "    guild: (snowflake) the id of the guild"
+		echo "    days: (snowflake) number of days to prune (>=1)"
+		exit 1 ;;
+	esac
+}
+
+reaction() {
+	case $1 in
+	'get'|'add'|'del'|'del_mod'|'del_all')
+		read -r TEXT
+		CHANNEL=$(echo "$TEXT" | jq -r ".channel")
+		case $1 in
+		'get')
+			MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
+			QUERY=$(echo "$TEXT" | format-args url 'before,after,limit')
+			echo " " | dapi GET "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI$QUERY" ;;
+		'add')
+			MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
+			echo " " | dapi PUT "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
+		'del')
+			MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
+			echo " " | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
+		'del_mod')
+			USER=$(echo "$TEXT"| jq -r ".author")
+			MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
+			echo " " | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/$USER" ;;
+		'del_all')
+			MSG=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions" ;;
+		esac ;;
+	*)
+		echo "Usage: reaction {COMMAND}" >&2
+		echo "Interacts with reaction endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "get: {id} {channel} {emoji} [before] [after] [limit]"
+		echo "    id: (snowflake) the id of the message"
+		echo "    channel: (snowflake) the id of the channel"
+		echo "    emoji: (string) the target emoji"
+		echo "    before: (snowflake) get users before this message id"
+		echo "    after: (snowflake) get users after this message id"
+		echo "    limit: (integer)  max number of users to return (1-100)"
+		echo ""
+		echo "add: {id} {channel} {emoji}"
+		echo "    id: (snowflake) the id of the message"
+		echo "    channel: (snowflake) the id of the channel"
+		echo "    emoji: (string) the target emoji"
+		echo ""
+		echo "del: {id} {channel} {emoji}"
+		echo "    id: (snowflake) the id of the message"
+		echo "    channel: (snowflake) the id of the channel"
+		echo "    emoji: (string) the target emoji"
+		echo ""
+		echo "del_mod: {id} {channel} {emoji} {author}"
+		echo "    id: (snowflake) the id of the message"
+		echo "    channel: (snowflake) the id of the channel"
+		echo "    emoji: (string) the target emoji"
+		echo "    author: (snowflake) the reaction author"
+		echo ""
+		echo "del_all: {id} {channel}"
+		echo "    id: (snowflake) the id of the message"
+		echo "    channel: (snowflake) the id of the channel"
+		exit 1 ;;
+	esac
+}
+
+role() {
+	case $1 in
+	'new'|'edit'|'del'|'list'|'give'|'take'|'pos_edit')
+		read -r TEXT
+		GUILD=$(echo "$TEXT" | jq -r ".guild")
+		case $1 in
+		'new')
+			PAYLOAD=$(echo "$TEXT" | format-args json "name,permissions,color,hoist,mentionable")
+			echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/roles" ;;
+		'edit')
+			ROLE=$(echo "$TEXT"| jq -r ".id")
+			PAYLOAD=$(echo "$TEXT" | format-args json "name,permissions,color,hoist,mentionable")
+			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/roles/$ROLE" ;;
+		'del')
+			ROLE=$(echo "$TEXT"| jq -r ".id")
+			echo " " | dapi DELETE "/guilds/$GUILD/roles/$ROLE" ;;
+		'list')
+			echo " " | dapi GET "/guilds/$GUILD/roles" ;;
+		'give')
+			ROLE=$(echo "$TEXT"| jq -r ".id"); USER=$(echo "$TEXT"| jq -r ".user")
+			echo " " | dapi PUT "/guilds/$GUILD/members/$USER/roles/$ROLE" ;;
+		'take')
+			ROLE=$(echo "$TEXT"| jq -r ".id"); USER=$(echo "$TEXT"| jq -r ".user")
+			echo " " | dapi DELETE "/guilds/$GUILD/members/$USER/roles/$ROLE" ;;
+		'pos_edit')
+			PAYLOAD=$(echo "$TEXT" | jq '.data')
+			echo "$PAYLOAD" | dapi PATCH "/guild/$GUILD/roles" ;;
+		esac ;;
+	*)
+		echo "Usage: role {COMMAND}" >&2
+		echo "Interacts with role endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "new: {guild} [name] [permissions] [color] [hoist] "
+		echo "[mentionable]"
+		echo "    guild: (snowflake) the id of the guild"
+		echo "    name: (string) the name of the role"
+		echo "    permissions: (integer) bitwise value of the "
+		echo "        enabled/disabled permissions"
+		echo "    color: (integer) RGB color"
+		echo "    hoist: (boolean) whether the role is hoisted"
+		echo "    mentionable: (boolean) whether the role is "
+		echo "        mentionable"
+		echo ""
+		echo "edit: {id} {guild} [name] [permissions] [color] "
+		echo "[hoist] [mentionable]"
+		echo "    id: (snowflake) the id of the role"
+		echo "    guild: (snowflake) the id of the guild"
+		echo "    name: (string) the name of the role"
+		echo "    permissions: (integer) bitwise value of the "
+		echo "        enabled/disabled permissions"
+		echo "    color: (integer) RGB color"
+		echo "    hoist: (boolean) whether the role is hoisted"
+		echo "    mentionable: (boolean) whether the role is "
+		echo "        mentionable"
+		echo ""
+		echo "del: {id} {guild}"
+		echo "    id: (snowflake) the id of the role"
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "list: {guild}"
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "give: {id} {user} {guild}"
+		echo "    id: (snowflake) the id of the role"
+		echo "    user: (snowflake) the id of the user"
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "take: {id} {user} {guild}"
+		echo "    id: (snowflake) the id of the role"
+		echo "    user: (snowflake) the id of the user"
+		echo "    guild: (snowflake) the id of the guild"
+		echo ""
+		echo "pos_edit: {guild} {data}"
+		echo "    guild: (snowflake) the id of the target guild"
+		echo "    data: (array) an array of (snowflake, integer), containing the role id"
+		echo "        and the position"
+		exit 1 ;;
+	esac
+}
+
+user() {
+	case $1 in
+	'get'|'edit'|'new_dm'|'dms'|'guilds'|'connections')
+		read -r TEXT
+		case $1 in
+		'get')
+			USER=$(echo "$TEXT" | jq -r ".id")
+			echo " " | dapi GET "/users/$USER" ;;
+		'edit')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'name,avatar')
+			echo "$PAYLOAD" | dapi PATCH "/users/@me" ;;
+		'new_dm')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'id' | jq -cM '.recipient_id = .id | del(.id)')
+			echo "$PAYLOAD" | dapi POST "/users/@me/channels" ;;
+		'dms')
+			echo " " | dapi GET "/users/@me/channels" ;;
+		'guilds')
+			QUERY=$(echo "$TEXT" | format-args url 'before,after,limit')
+			echo " " | dapi GET "/users/@me/guilds$QUERY" ;;
+		'connections')
+			echo " " | dapi GET "/users/@me/connections" ;;
+		esac ;;
+	*)
+		echo "Usage: user {COMMAND}" >&2
+		echo "Interacts with user endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "get: {id}"
+		echo "    id: (snowflake|string) the id of an user, @me for the current user"
+		echo ""
+		echo "edit: [name] [avatar]"
+		echo "    name: (string) your new username"
+		echo "    avatar: (uri image) the data of your new avatar"
+		echo ""
+		echo "new_dm: {id}"
+		echo "    id: (snowflake) the id of the recipient"
+		echo ""
+		echo "dms"
+		echo ""
+		echo "guilds [before] [after] [limit]"
+		echo "    before: (snowflake) get guilds before this guild id"
+		echo "    after: (snowflake) get guilds after this guild id"
+		echo "    limit: (integer) max number of guilds to return (1-100)"
+		echo ""
+		echo "connections"
+		exit 1 ;;
+	esac
+}
+
+webhook() {
+	case $1 in
+	'exec'|'get'|'edit'|'del'|'list_ch'|'list_g')
+		read -r TEXT
+		COMMON=$(echo "$1"| jq -r '.id,.token')
+		mapfile -t COMMON <<< "$COMMON"
+
+		ID=${COMMON[0]}; TOKEN=${COMMON[1]}
+		[ -n "$TOKEN" ] && TOKEN="/$TOKEN"
+		case $1 in
+		'exec')
+			FILES=$(echo "$TEXT" | jq -cM '.files//empty')
+			PAYLOAD=$(echo "$TEXT" | format-args json 'content,embeds,files,username,avatar_url,tts')
+			if [[ -z $FILES ]]; then
+				echo "$PAYLOAD" | dapi POST "/webhooks/$ID$TOKEN" "{}"
+			else
+				echo "$PAYLOAD" | dapi @FILES "/webhooks/$ID$TOKEN" "$FILES"
+			fi ;;
+		'get')
+			echo " " | dapi GET "/webhooks/$ID$TOKEN" ;;
+		'edit')
+			echo " " | dapi PATCH "/webhooks/$ID$TOKEN" ;;
+		'del')
+			echo " " | dapi DELETE "/webhooks/$ID$TOKEN" ;;
+		'list_ch')
+			echo " " | dapi GET "/channels/$ID/webhooks" ;;
+		'list_g')
+			echo " " | dapi GET "/guilds/$ID/webhooks"  ;;
+		esac ;;
+	*)
+		echo "Usage: webhook {COMMAND}" >&2
+		echo "Interacts with webhook endpoints"
+		echo ""
+		echo "Every command accept a string of JSON on STDIN"
+		echo "Avaliable commands with their respective JSON keys"
+		echo ""
+		echo "exec: {id} {token} [*content] [*embeds] [*files] [username] "
+		echo "    [avatar_url] [tts]"
+		echo "    id: (snowflake) the id of the webhook"
+		echo "    token: (string) the token of the webhook"
+		echo "    content: (string) the message contents (<2000)"
+		echo "    embeds: (array) an array of embed objects"
+		echo "    files: (array) an array of paths, the files to be uploaded"
+		echo "    username: (string) default name override"
+		echo "    avatar_url: (string) default avatar override"
+		echo "    tts: (boolean) if this is a TTS message"
+		echo ""
+		echo "get: {id} [token]"
+		echo "    id: (snowflake) the id of the webhook"
+		echo "    token: (string) the token of the webhook"
+		echo ""
+		echo "edit: {id} [token] [name] [avatar] [channel_id]"
+		echo "    id: (snowflake) the id of the webhook"
+		echo "    token: (string) the token of the webhook"
+		echo "    name: (string) the default name of the webhook"
+		echo "    avatar: (uri image) default webhook avatar"
+		echo "    channel_id: (snowflake) the new channel id"
+		echo "        this webhook should be moved to"
+		echo ""
+		echo "del: {id} [token]"
+		echo "    id: (snowflake) the id of the webhook"
+		echo "    token: (string) the token of the webhook"
+		echo ""
+		echo "list_ch: {id}"
+		echo "    id: (snowflake) the id of the channel"
+		echo ""
+		echo "list_g: {id}"
+		echo "    id: (snowflake) the id of the guild"
+		exit 1 ;;
+	esac
+}

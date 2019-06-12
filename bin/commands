@@ -6,13 +6,13 @@ prefix(){
 }
 
 dispatch(){
-	export -f "$2"
+	[ "$(type -t "$2")" == "function" ] && export -f "$2"
 	eval "MASH_DISPATCH_$1='$2'"
 	export "MASH_DISPATCH_$1"
 }
 
 xcommand(){
-	export -f "$1"
+	[ "$(type -t "$1")" == "function" ] && export -f "$1"
 	NAMES=( $2 )
 	for NAME in "${NAMES[@]}"; do
 		eval "MASH_COMMAND_$NAME='$1'"
@@ -22,50 +22,7 @@ xcommand(){
 	done
 }
 
-set-args(){
-	ARGS=( $@ ); JSON=''
-	for ARG in "${ARGS[@]}"; do
-		IFS=':' read -ra ARGSQ <<< "$ARG"
-		KEY="${ARGSQ[0]}" VAR=${ARGSQ[1]:-${ARGSQ[0]}}
-		[ -n "${ARGSQ[2]}" ] && VALUE="${!VAR:-null}" || VALUE="\"${!VAR}\""
-		JSON="$JSON\"$KEY\":$VALUE,"
-	done
-	JSON="{${JSON::-1}}"; echo "$JSON" | jq -cM
-}
-
-get-args(){
-	read -r JSON
-	ARGS=( $@ ); RQ=''; Q=''
-	for ARG in "${ARGS[@]}"; do
-		IFS=':' read -ra ARGSQ <<< "$ARG"
-		KEY="${ARGSQ[0]}"
-		[ -n "${ARGSQ[2]}" ] && RQ="$RQ.$KEY," || Q="$Q.$KEY,"
-	done
-
-	if [ -n "$RQ" ]; then
-		RQ="${RQ::-1}"; RQ="$(echo "$JSON" | jq "$RQ")"
-		mapfile -t RQ <<< "$RQ"
-	fi
-
-	if [ -n "$Q" ]; then
-		Q="${Q::-1}"; Q="$(echo "$JSON" | jq -r "$Q")"
-		mapfile -t Q <<< "$Q"
-	fi
-
-	for ARG in "${ARGS[@]}"; do
-		IFS=':' read -ra ARGSQ <<< "$ARG"
-		VAR=${ARGSQ[1]:-${ARGSQ[0]}}
-		if [ -n "${ARGSQ[2]}" ]; then
-			VALUE="${RQ[0]}"; RQ="${RQ[@]:1}"
-		else
-			VALUE="${Q[0]}"; Q="${Q[@]:1}"
-		fi
-
-		echo "$VAR='$VALUE'"
-	done
-}
-
-parse-commands(){
+_parse-commands(){
 	CONTENT="$(echo "$1" | grep -oP '(?<="content":").*?(?=",)')"
 	if [ -n "$MASH_PREFIX" ]; then
 		for TEST_PREFIX in "${MASH_PREFIX[@]}"; do
@@ -94,24 +51,13 @@ parse-commands(){
 	[ -z "$FUNC" ] && exit
 
 	CTXSTR="MASH_COMMAND_${COMMAND}_CTX"; CTXSTR="${!CTXSTR}"
-	CTX=$(echo "$1" | jq -r "$CTXSTR" )
-	mapfile -t CTX <<< "$CTX"
+	CTX=$(echo "$1" | jq -r "$CTXSTR")
 
+	export CTX
 	"$FUNC" "${ARGS[@]:1}"
 }
 
-parse-event(){
-	E="$1"; T="${E%% *}"; D="${E#"$T "}"
-	F="MASH_DISPATCH_$T"; F="${!F}"	
-	[ -n "$F" ] && "$F" "$D"
-}
-
-bot-loop(){
-	. `which env_parallel.bash`
-	env_parallel --lb -q parse-event '{}' < <(ws-start)
-}
-
-if [[ $_ == $0 ]]; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	echo "Usage: source commands" >&2
 	echo "Helper functions for the lib"
 	echo ""
@@ -134,32 +80,6 @@ if [[ $_ == $0 ]]; then
 	echo "    CTX_STRING: A jq query for the CTX variable,"
 	echo "        needs to return values separated by lines"
 	echo "        an example would be '.channel_id,.id'"
-	echo ""
-	echo "set-args {ARG1} [ARG2] ... [ARGN]"
-	echo "    Creates a json object using environment"
-	echo "        variables as key and values"
-	echo "    ARGs: A string on the following format"
-	echo "       {KEY}:[VAR]:[RAW]"
-	echo "       KEY: A json key"
-	echo "       VAR: A environment variable, KEY if empty"
-	echo "       RAW: Empty for string, @ for raw json"
-	echo ""
-	echo "get-args {ARG1} [ARG2] ... [ARGN]"
-	echo "    Returns an evaluable string of the keys"
-	echo "        and values from JSON keys"
-	echo "    ARGs: A string on the following format"
-	echo "       {KEY}:[VAR]:[RAW]"
-	echo "       KEY: A json key"
-	echo "       VAR: A environment variable, KEY if empty"
-	echo "       RAW: Empty for string, @ for raw json"
-	echo ""
-	echo "parse-commands {MESSAGE}"
-	echo "    Parse commands from a message object"
-	echo "    MESSAGE: Data from a MESSAGE_CREATE payload"
-	echo ""
-	echo "bot-loop [MAX_JOBS]"
-	echo "    Reads the events from the websocket"
-       	echo "        and dispatches them"
 else
-	dispatch MESSAGE_CREATE parse-commands
+	dispatch MESSAGE_CREATE _parse-commands
 fi
