@@ -6,14 +6,13 @@ _last-seq(){
 }
 
 _dispatch-event(){
-
         #read -r PAYLOAD
         PAYLOAD="$1"
 
         OP="$(echo "$PAYLOAD" | grep -oP '(?<="op":).*?(?=,)')"
         case $OP in
         0)
-        echo "$PAYLOAD" >> "$LOGF"
+        echo "$PAYLOAD" | tee "$MASH_STATUS_DIR/ws_ewait_"* >> /dev/null
 
         TSD="$(echo "$PAYLOAD" | grep -oP '(?<="t":").*?(?=",)|(?<="s":).*?(?=,)|(?<="d":).*' | head --bytes -2)"
         mapfile -t TSD <<< "$TSD"
@@ -44,10 +43,8 @@ _dispatch-event(){
                 _last-seq | ws-send 1 "$SHARD"
 
                 sleep "$WAIT"
-		echo "$ACKF"
                 ACK=$(cat "$ACKF"); ACK="${ACK:-$LACK}"
                 [ "$LACK" -ge "$ACK" ] && (echo "null" | ws-send -1 "$SHARD")
-                echo "$(( ACK - LACK ))" > "$LATF"
                 sleep "$INTERVAL"
         done ;;
         11) echo "$(date +%s%N)" > "$ACKF" ;;
@@ -60,9 +57,8 @@ _ws-shard(){
 	PIPE="$MASH_STATUS_DIR/ws_pipe_$1"
 	rm -f "$PIPE"; mkfifo "$PIPE"
 	tail -f > "$PIPE" &
+	trap "rm -f '$PIPE'; kill -9 $!" EXIT
 
-	LOGF="$MASH_STATUS_DIR/ws_log_$1"; touch "$LOGF"
-	LATF="$MASH_STATUS_DIR/ws_latency_$1"; touch "$LATF"
 	ACKF="$MASH_STATUS_DIR/ws_lastack_$1"; touch "$ACKF"
 	SESF="$MASH_STATUS_DIR/ws_sessionid_$1"
 
@@ -87,7 +83,7 @@ ws-start(){
 
 	[ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
 	rm -rf "$MASH_STATUS_DIR"; mkdir "$MASH_STATUS_DIR"
-	trap "rm -rf $MASH_STATUS_DIR; kill 0" EXIT
+	trap "rm -rf '$MASH_STATUS_DIR'; kill 0" EXIT
 	export MASH_STATUS_DIR
 
 	[ "$MASH_AUTH_BOT" == "1" ] && SHARDS=$(echo " " | dapi GET "/gateway/bot" | jq -r '.shards//empty')
@@ -104,10 +100,15 @@ ws-send(){
 
 ewait(){
 	[ -z "$1" ] && exit 1
+	PIPE="$MASH_STATUS_DIR/ws_ewait_$(mktemp -u XXXXXXXXXXXXXXXX)"
+	rm -f "$PIPE"; mkfifo "$PIPE"
+	tail -f > "$PIPE" &
+	trap "rm -f '$PIPE'; kill -9 $!" EXIT
+
 	QUERY="fromstream(0|truncate_stream(inputs)) | select($1)"
 	while IFS= read -r EVENT || [[ -n "$EVENT" ]]; do
 		echo "$EVENT"; exit
-	done < <(timeout "${2:-0}" tail -n0 -qf "$MASH_STATUS_DIR/ws_log_"* | jq -cM --stream --unbuffered "$QUERY") 
+	done < <(timeout "${2:-0}" cat "$PIPE" | jq -cM --stream --unbuffered "$QUERY") 
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
