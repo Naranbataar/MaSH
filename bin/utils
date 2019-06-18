@@ -48,8 +48,6 @@ format-args(){
 	case $1 in
 	'json')
 		[ -n "$3" ] && EXTRA=",($3)"
-		echo "$PAYLOAD" >> foda
-		echo "$PAYLOAD" | jq -cMr "({$2} | with_entries(select(.value!=null)))$EXTRA" >> foda
 		echo "$PAYLOAD" | jq -cMr "({$2} | with_entries(select(.value!=null)))$EXTRA";;
 	'url')
 		URL="$(echo "$PAYLOAD" | jq -jr "({$2} | with_entries(select(.value!=null)) | keys[] as \$k | \"\(\$k)=\(.[\$k])&\")")"
