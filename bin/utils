@@ -8,7 +8,7 @@ set-args(){
                 [ -n "${ARGSQ[2]}" ] && VALUE="${!VAR:-null}" || VALUE="\"${!VAR}\""
                 JSON="$JSON\"$KEY\":$VALUE,"
         done
-        JSON="{${JSON::-1}}"; echo "$JSON" | jq -cM
+        JSON="{${JSON::-1}}"; echo "$JSON" 
 }
 
 get-args(){
