@@ -1,51 +1,48 @@
 #!/bin/bash
 source utils
 
+_route(){
+	read -r TEXT; COMMAND="$1"; ROUTE="$2"; TYPE="$3"
+	mapfile -t DATA <<< "$(echo "$TEXT" | format-args "$3" "$4" "$5")"
+	set -- "${DATA[@]:1}"; ARGS="${DATA[0]}"; [ "$ARGS" == "{}" ] && ARGS=' '
+	case "$TYPE" in
+	'json') echo "$ARGS" | dapi "$COMMAND" "$(eval "echo \"$ROUTE\"")";;
+	'url') echo " " | dapi "$COMMAND" "$(eval "echo \"$ROUTE\"")$ARGS";;
+	esac
+}
+
+
 channel() {
 	case $1 in
 	'get'|'new'|'edit'|'del'|'list'|'dm_add'|'dm_remove'|'pos_edit'|'perm_edit'|'perm_delete')
 		read -r TEXT
 		case $1 in
 		'get')
-			CHANNEL=$(echo "$TEXT" | jq -r '.id')
-			echo " " | dapi GET "/channels/$CHANNEL" ;;
+			COMMAND='GET'; ROUTE='/channels/$1'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.id' ;;
 		'new')
-			GUILD=$(echo "$TEXT" | jq -r '.guild')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'name,type,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
-			echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/channels" ;;
+			COMMAND='POST'; ROUTE='/guilds/$1/channels'; TYPE='json'
+			DATA_ARGS='name,type,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw'
+			URL_ARGS='.guild' ;;
 		'edit')
-			CHANNEL=$(echo "$TEXT" | jq -r '.id')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'name,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw')
-			echo "$PAYLOAD" | dapi PATCH "/channels/$CHANNEL" ;;
+			COMMAND='PATCH'; ROUTE='/channels/$1'; TYPE='json'
+			DATA_ARGS='name,topic,bitrate,user_limit,rate_limit_per_user,position,permission_overwrites,parent_id,nsfw'
+			URL_ARGS='.id' ;;
 		'del')
-			CHANNEL=$(echo "$TEXT" | jq -r '.id')
-			echo " " | dapi DELETE "/channels/$CHANNEL" ;;
+			COMMAND='DELETE'; ROUTE='/channels/$1'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.id' ;;
 		'list')
-			GUILD=$(echo "$TEXT" | jq -r '.guild')
-			echo " " | dapi GET "/guilds/$GUILD/channels" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/channels'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild' ;;
 		'dm_add')
-			CHANNEL=$(echo "$TEXT" | jq -r ".id");
-			USER=$(echo "$TEXT" | jq -r ".user");
-			echo " " | dapi PUT "/channels/$CHANNEL/recipients/$USER" ;;
+			COMMAND='PUT'; ROUTE='/channels/$1/recipients/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.id,.user' ;;
 		'dm_remove')
-			CHANNEL=$(echo "$TEXT" | jq -r ".id");
-			USER=$(echo "$TEXT" | jq -r ".user");
-			echo " " | dapi DELETE "/channels/$CHANNEL/recipients/$USER" ;;
+			COMMAND='DELETE'; ROUTE='/channels/$1/recipients/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.id,.user' ;;
 		'pos_edit')
-			GUILD=$(echo "$TEXT" | jq -r '.guild')
-			PAYLOAD=$(echo "$TEXT" | jq '.data')
-			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/channels" ;;
+			COMMAND='PATCH'; ROUTE='/guilds/$1/channels'; TYPE='json'; DATA_ARGS='data'; URL_ARGS='.guild' ;;
 		'perm_edit')
-			OW=$(echo "$TEXT" | jq -r '.id')
-			CHANNEL=$(echo "$TEXT" | jq -r '.channel')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'allow,deny,type')
-
-			echo "$PAYLOAD" | dapi PUT "/channels/$CHANNEL/permissions/$OW" ;;
+			COMMAND='PUT'; ROUTE='/channels/$1/permissions/$2'; TYPE='json'; DATA_ARGS='allow,deny,type'; URL_ARGS='.channel,.id' ;;
 		'perm_delete')
-			OW=$(echo "$TEXT" | jq -r '.id')
-			CHANNEL=$(echo "$TEXT" | jq -r '.channel')
-			echo " " | dapi DELETE "/channels/$CHANNEL/permissions/$OW" ;;
-		esac ;;
+			COMMAND='DELETE'; ROUTE='/channels/$1/permissions/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.channel,.id' ;;
+		esac
+		echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;;
 	*)
 		echo "Usage: channel {COMMAND}" >&2
 		echo "Interacts with channel endpoints"
@@ -126,24 +123,19 @@ emoji() {
 	case $1 in
 	'get'|'new'|'edit'|'del'|'list')
 		read -r TEXT
-		GUILD=$(echo "$TEXT" | jq -r ".guild")
 		case $1 in
 		'get')
-			EMOJI=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi GET "/guilds/$GUILD/emojis/$EMOJI" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/emojis/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild,.id' ;;
 		'new')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'name,image,roles')
-			echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/emojis" ;;
+			COMMAND='POST'; ROUTE='/guilds/$1/emojis'; TYPE='json'; DATA_ARGS='name,image,roles'; URL_ARGS='.guild' ;;
 		'edit')
-			EMOJI=$(echo "$TEXT" | jq -r ".id")
-			PAYLOAD=$(echo "$TEXT" | format-args json 'name,roles')
-			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/emojis/$EMOJI" ;;
+			COMMAND='PATCH'; ROUTE='/guilds/$1/emojis/$2'; TYPE='json'; DATA_ARGS='name,roles'; URL_ARGS='.guild,.id' ;;
 		'del')
-			EMOJI=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi DELETE "/guilds/$GUILD/emojis/$EMOJI" ;;
+			COMMAND='DELETE'; ROUTE='/guilds/$1/emojis/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild,.id' ;;
 		'list')
-			echo " " | dapi GET "/guilds/$GUILD/emojis" ;;
-		esac ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/emojis'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild' ;;
+		esac 
+		echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;; 
 	*)
 		echo "Usage: emoji {COMMAND}" >&2
 		echo "Interacts with emoji endpoints"
@@ -177,36 +169,35 @@ emoji() {
 	esac
 }
 
-guild (){
+guild(){
 	case $1 in
 	'get'|'new'|'edit'|'del'|'embed_get'|'embed_edit'|'audit_log'|'vanity_url'|'widget')
 		read -r TEXT
-		GUILD=$(echo "$TEXT" | jq -r '.id')
 		case $1 in
 		'get')
-			echo " " | dapi GET "/guilds/$GUILD" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild' ;;
 		'new')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'name,region,icon,verification_level,default_message_notifications,explicit_content_filter,roles,channels')
-			echo "$PAYLOAD" | dapi POST "/guilds" ;;
+			COMMAND='POST'; ROUTE='/guilds'; TYPE='json'
+			DATA_ARGS='name,region,icon,verification_level,default_message_notifications,explicit_content_filter,roles,channels'
+		       	URL_ARGS='' ;;
 		'edit')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'name,region,verification_level,default_message_notifications,explicit_content_filter,afk_channel_id,afk_timeout,icon,owner_id,splash,system_channel_id')
-			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD" ;;
+			COMMAND='PATCH'; ROUTE='/guilds/$1'; TYPE='json'
+			DATA_ARGS='name,region,verification_level,default_message_notifications,explicit_content_filter,afk_channel_id,afk_timeout,icon,owner_id,splash,system_channel_id'
+			URL_ARGS='.guild' ;;
 		'del')
-			echo " " | dapi DELETE "/guilds/$GUILD" ;;
+			COMMAND='DELETE'; ROUTE='/guilds/$1'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild' ;;
 		'embed_get')
-			echo " " | dapi GET "/guilds/$GUILD/embed" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/embed'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild' ;;
 		'embed_edit')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'enabled,channel_id')
-			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/embed" ;;
+			COMMAND='PATCH'; ROUTE='/guilds/$1/embed'; TYPE='json'; DATA_ARGS='enabled,channel_id'; URL_ARGS='.guild' ;;
 		'audit_log')
-			QUERY=$(echo "$TEXT" | format-args url 'user_id,action_type,before,limit')
-			echo " " | dapi GET "/guilds/$GUILD/audit-logs$QUERY" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/audit-logs'; TYPE='url'; DATA_ARGS='user_id,action_type,before,limit'; URL_ARGS='.guild' ;;
 		'vanity_url')
-			echo " " | dapi GET "/guilds/$GUILD/vanity-url" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/vanity-url'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild' ;;
 		'widget')
-			QUERY=$(echo "$TEXT" | format-args url 'style')
-			echo " " | dapi GET "/guilds/$GUILD/widget.png$QUERY" ;;
-		esac ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/widget.png'; TYPE='url'; DATA_ARGS='style'; URL_ARGS='.guild' ;;
+		esac 
+		echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;;
 	*)
 		echo "Usage: guild {COMMAND}" >&2
 		echo "Interacts with guild endpoints"
@@ -283,24 +274,20 @@ integration() {
 	case $1 in
 	'get'|'new'|'edit'|'del'|'sync')
 		read -r TEXT
-		GUILD=$(echo "$TEXT" | jq -r ".guild");
 		case $1 in
 		'get')
-			echo " " | dapi GET "/guilds/$GUILD/integrations" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/integrations'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild' ;;
 		'new')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'id,type')
-			echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/integrations" ;;
+			COMMAND='POST'; ROUTE='/guilds/$1/integrations'; TYPE='json'; DATA_ARGS='id,type'; URL_ARGS='.guild' ;;
 		'edit')
-			INTG=$(echo "$TEXT"| jq -r ".id")
-			PAYLOAD=$(echo "$TEXT" | format-args json 'expire_behavior,expire_grace_period,enable_emoticons')
-			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/integrations/$INTG" ;;
+			COMMAND='PATCH'; ROUTE='/guilds/$1/integrations/$2'; TYPE='json' 
+			DATA_ARGS='expire_behavior,expire_grace_period,enable_emoticons'; URL_ARGS='.guild,.id' ;;
 		'del')
-			INTG=$(echo "$TEXT"| jq -r ".id")
-			echo " " | dapi DELETE "/guilds/$GUILD/integrations/$INTG" ;;
+			COMMAND='DELETE'; ROUTE='/guilds/$1/integrations/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild,.id' ;;
 		'sync')
-			INTG=$(echo "$TEXT"| jq -r ".id")
-			echo " " | dapi POST "/guilds/$GUILD/integrations/$INTG/sync" ;;
-		esac ;;
+			COMMAND='POST'; ROUTE='/guilds/$1/integrations/$2/sync'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild,.id' ;;
+		esac 
+		echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;; 
 	*)
 		echo "Usage: integration {COMMAND}" >&2
 		echo "Interacts with guild integration endpoints"
@@ -345,22 +332,18 @@ invite() {
 		read -r TEXT
 		case $1 in
 		'get')
-			INV=$(echo "$TEXT" | jq -r ".code")
-			echo " " | dapi GET "/invites/$INV" ;;
+			COMMAND='GET'; ROUTE='/invites/$1'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.code' ;;
 		'new')
-			CHANNEL=$(echo "$TEXT" | jq -r ".channel")
-			PAYLOAD=$(echo "$TEXT" | format-args json 'max_age,max_uses,temporary,unique')
-			echo "$PAYLOAD" | dapi POST "/channels/$CHANNEL/invites" ;;
+			COMMAND='POST'; ROUTE='/channels/$1/invites'; TYPE='json' 
+			DATA_ARGS='max_age,max_uses,temporary,unique'; URL_ARGS='.channel' ;;
 		'del')
-			INV=$(echo "$TEXT" | jq -r ".code")
-			echo " " | dapi DELETE "/invites/$INV" ;;
+			COMMAND='DELETE'; ROUTE='/invites/$1'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.code' ;;
 		'list_ch')
-			CHANNEL=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi GET "/channels/$CHANNEL/invites" ;;
+			COMMAND='GET'; ROUTE='/channels/$1/invites'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.id' ;;
 		'list_g')
-			GUILD=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi GET "/guilds/$GUILD/invites" ;;
-		esac ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/invites'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.id' ;;
+		esac 
+		echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;; 
 	*)
 		echo "Usage: invite {COMMAND}" >&2
 		echo "Interacts with invite endpoints"
@@ -394,29 +377,23 @@ member() {
 	case $1 in
 	'get'|'new'|'edit'|'del'|'list'|'my_nick_edit')
 		read -r TEXT
-		GUILD=$(echo "$TEXT" | jq -r ".guild")
 		case $1 in
 		'get')
-			USER=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi GET "/guilds/$GUILD/members/$USER" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/members/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild,.id' ;;
 		'new')
-			USER=$(echo "$TEXT" | jq -r ".id")
-			PAYLOAD=$(echo "$TEXT" | format-args json 'access_token,nick,roles,mute,deaf')
-			echo "$PAYLOAD" | dapi PUT "/guilds/$GUILD/members/$USER" ;;
+			COMMAND='PUT'; ROUTE='/guilds/$1/members/$2'; TYPE='json'
+			DATA_ARGS='access_token,nick,roles,mute,deaf'; URL_ARGS='.guild,.id' ;;
 		'edit')
-			USER=$(echo "$TEXT" | jq -r ".id")
-			PAYLOAD=$(echo "$TEXT" | format-args json 'nick,roles,mute,deaf,channel_id')
-			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/members/$USER" ;;
+			COMMAND='PATCH'; ROUTE='/guilds/$1/members/$2'; TYPE='json' 
+			DATA_ARGS='nick,roles,mute,deaf,channel_id'; URL_ARGS='.guild,.id' ;;
 		'del')
-			USER=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi DELETE "/guild/$GUILD/members/$USER" ;;
+			COMMAND='DELETE'; ROUTE='/guilds/$1/members/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild,.id' ;;
 		'list')
-			QUERY=$(echo "$TEXT" | format-args url 'limit,after')
-			echo " " | dapi GET "/guilds/$GUILD/members$QUERY" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/members'; TYPE='url'; DATA_ARGS='limit,after'; URL_ARGS='.guild' ;;
 		'rename_me')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'nick')
-			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/members/@me/nick" ;;
-		esac ;;
+			COMMAND='PATCH'; ROUTE='/guilds/$1/members/@me/nick'; TYPE='json'; DATA_ARGS='nick'; URL_ARGS='.guild' ;;
+		esac 
+		echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;; 
 	*)
 		echo "Usage: member {COMMAND}" >&2
 		echo "Interacts with member endpoints"
@@ -468,43 +445,36 @@ message() {
 	case $1 in
 	'type'|'get'|'send'|'edit'|'delete'|'pin'|'unpin'|'pins'|'bulk_get'|'bulk_delete')
 		read -r TEXT
-		CHANNEL=$(echo "$TEXT" | jq -r '.channel')
 		case $1 in
 		'type')
-			echo " " | dapi POST "/channels/$CHANNEL/typing" ;;
+			COMMAND='POST'; ROUTE='/channels/$1/typing'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.channel' ;;
 		'get')
-			MSG=$(echo "$TEXT" | jq -r '.id')
-			echo " " | dapi GET "/channels/$CHANNEL/messages/$MSG" ;;
+			COMMAND='GET'; ROUTE='/channels/$1/messages/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.channel,.id' ;;
 		'send')
-			FILES=$(echo "$TEXT" | jq -cM '.files//empty')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'content,embed,nonce,tts')
-			if [[ -z $FILES ]]; then
-				echo "$PAYLOAD" | dapi POST "/channels/$CHANNEL/messages"
+			unset COMMAND; DATA_ARGS='content,embed,nonce,tts'; URL_ARGS='.files,.channel'
+			mapfile -t DATA <<< "$(echo "$TEXT" | format-args json "$DATA_ARGS" "$URL_ARGS")"
+			set -- "${DATA[@]:1}"; ARGS="${DATA[0]}"
+			if [ "$1" == 'null' ]; then
+				echo "$ARGS" | dapi POST "/channels/$2/messages"
 			else
-				echo "$PAYLOAD" | dapi @FILES "/channels/$CHANNEL/messages" "$FILES"
+				echo "$ARGS" | dapi @FILES "/channels/$2/messages" "$1"
 			fi ;;
 		'edit')
-			MSG=$(echo "$TEXT" | jq -r ".id")
-			PAYLOAD=$(echo "$TEXT" | format-args json 'content,embed')
-			echo "$PAYLOAD" | dapi PATCH "/channels/$CHANNEL/messages/$MSG" ;;
+			COMMAND='PATCH'; ROUTE='/channels/$1/messages/$2'; TYPE='json'; DATA_ARGS='content,embed'; URL_ARGS='.channel,.id' ;;
 		'delete')
-			MSG=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi DELETE "/channels/$CHANNEL/messages/$MSG" ;;
+			COMMAND='DELETE'; ROUTE='/channels/$1/messages/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.channel,.id' ;;
 		'pin')
-			MSG=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi PUT "/channels/$CHANNEL/pins/$MSG" ;;
+			COMMAND='PUT'; ROUTE='/channels/$1/pins/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.channel,.id' ;;
 		'unpin')
-			MSG=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi DELETE "/channels/$CHANNEL/pins/$MSG" ;;
+			COMMAND='DELETE'; ROUTE='/channels/$1/pins/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.channel,.id' ;;
 		'pins')
-			echo " " | dapi GET "/channels/$CHANNEL/pins" ;;
+			COMMAND='GET'; ROUTE='/channels/$1/pins'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.channel' ;;
 		'bulk_get')
-			QUERY=$(echo "$TEXT" | format-args url 'before,after,around,limit')
-			echo " " | dapi GET "/channels/$CHANNEL/messages$QUERY" ;;
+			COMMAND='GET'; ROUTE='/channels/$1/messages'; TYPE='url'; DATA_ARGS='before,after,around,limit'; URL_ARGS='.channel' ;;
 		'bulk_delete')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'messages')
-			echo "$PAYLOAD" | dapi POST "/channels/$CHANNEL/messages/bulk-delete" ;;
-		esac ;;
+			COMMAND='POST'; ROUTE='/channels/$1/messages/bulk-delete'; TYPE='json'; DATA_ARGS='messages'; URL_ARGS='.channel' ;;
+		esac
+		[ -n "$COMMAND" ] && echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;; 
 	*)
 		echo "Usage: message {COMMAND}" >&2
 		echo "Interacts with message endpoints"
@@ -566,26 +536,21 @@ moderation() {
 	case $1 in
 	'ban'|'unban'|'get_ban'|'get_bans'|'prune'|'count_prune')
 		read -r TEXT
-		GUILD=$(echo "$TEXT" | jq -r ".guild");
 		case $1 in
 		'ban')
-			QUERY=$(echo "$TEXT" | format-args url 'reason,delete_message_days' | tr '_' '-')
-			echo " " | dapi PUT "/guilds/$GUILD/bans/$USER$QUERY" ;;
+			COMMAND='PUT'; ROUTE='/guilds/$1/bans/$2'; TYPE='url'; DATA_ARGS='reason,delete-message-days'; URL_ARGS='.guild,.id' ;;
 		'unban')
-			USER=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi DELETE "/guilds/$GUILD/bans/$USER" ;;
+			COMMAND='DELETE'; ROUTE='/guilds/$1/bans/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild,.id' ;;
 		'get_ban')
-			USER=$(echo "$TEXT"| jq -r ".id")
-			echo " " | dapi GET "/guilds/$GUILD/bans/$USER" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/bans/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild,.id' ;;
 		'get_bans')
-			echo " " | dapi GET "/guilds/$GUILD/bans" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/bans'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild' ;;
 		'prune')
-			QUERY=$(echo "$TEXT" | format-args url 'days,compute_prune_count' | tr '_' '-')
-			echo " " | dapi POST "/guilds/$GUILD/prune$QUERY" ;;
+			COMMAND='POST'; ROUTE='/guilds/$1/prune'; TYPE='url'; DATA_ARGS='days,compute-prune-count'; URL_ARGS='.guild' ;;
 		'count_prune')
-			QUERY=$(echo "$TEXT" | format-args url 'days')
-			echo " " | dapi GET "/guilds/$GUILD/prune$QUERY" ;;
-		esac ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/prune'; TYPE='url'; DATA_ARGS='days'; URL_ARGS='.guild' ;;
+		esac 
+		echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;; 
 	*)
 		echo "Usage: moderation {COMMAND}" >&2
 		echo "Interacts with moderation endpoints"
@@ -593,11 +558,11 @@ moderation() {
 		echo "Every command accept a string of JSON on STDIN"
 		echo "Avaliable commands with their respective JSON keys"
 		echo ""
-		echo "ban: {id} {guild} [reason] [delete_message_days]"
+		echo "ban: {id} {guild} [reason] [delete-message-days]"
 		echo "    id: (snowflake) the id of the user"
 		echo "    guild: (snowflake) the id of the guild"
 		echo "    reason: (string) reason for the ban"
-		echo "    delete_message_days: (integer) number of"
+		echo "    delete-message-days: (integer) number of"
 		echo "        days to delete messages for (0-7)"
 		echo ""
 		echo "unban: {id} {guild}"
@@ -611,10 +576,10 @@ moderation() {
 		echo "get_bans: {guild}"
 		echo "    guild: (snowflake) the id of the guild"
 		echo ""
-		echo "prune: {guild} [days] [compute_prune_count]"
+		echo "prune: {guild} [days] [compute-prune-count]"
 		echo "    guild: (snowflake) the id of the guild"
 		echo "    days: (snowflake) number of days to prune (>=1)"
-		echo "    compute_prune_count: (boolean) whether 'pruned'"
+		echo "    compute-prune-count: (boolean) whether 'pruned'"
 		echo "        is returned"
 		echo ""
 		echo "count_prune: {guild} [days]"
@@ -628,26 +593,24 @@ reaction() {
 	case $1 in
 	'get'|'add'|'del'|'del_mod'|'del_all')
 		read -r TEXT
-		CHANNEL=$(echo "$TEXT" | jq -r ".channel")
 		case $1 in
 		'get')
-			MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-			QUERY=$(echo "$TEXT" | format-args url 'before,after,limit')
-			echo " " | dapi GET "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI$QUERY" ;;
-		'add')
-			MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-			echo " " | dapi PUT "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
-		'del')
-			MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-			echo " " | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/@me" ;;
-		'del_mod')
-			USER=$(echo "$TEXT"| jq -r ".author")
-			MSG=$(echo "$TEXT" | jq -r ".id"); EMOJI=$(echo "$TEXT" | jq -r ".emoji")
-			echo " " | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions/$EMOJI/$USER" ;;
-		'del_all')
-			MSG=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi DELETE "/channels/$CHANNEL/messages/$MSG/reactions" ;;
-		esac ;;
+			COMMAND='GET'; ROUTE="/channels/\$1/messages/\$2/reactions/\$3"
+			TYPE='url'; DATA_ARGS='before,after,limit'; URL_ARGS='.channel,.id,.emoji' ;;
+		'add') 
+			COMMAND='PUT'; ROUTE="/channels/\$1/messages/\$2/reactions/\$3/@me"
+			TYPE='json'; DATA_ARGS=''; URL_ARGS='.channel,.id,.emoji' ;;
+		'del') 
+			COMMAND='DELETE'; ROUTE="/channels/\$1/messages/\$2/reactions/\$3/@me"
+			TYPE='json'; DATA_ARGS=''; URL_ARGS='.channel,.id,.emoji' ;;
+		'del_mod') 
+			COMMAND='DELETE'; ROUTE="/channels/\$1/messages/\$2/reactions/\$3/\$4"
+			TYPE='json'; DATA_ARGS=''; URL_ARGS='.channel,.id,.emoji,.author' ;;
+		'del_all') 
+			COMMAND='DELETE'; ROUTE="/channels/\$1/messages/\$2/reactions"
+			TYPE='json'; DATA_ARGS=''; URL_ARGS='.channel,.id' ;;
+		esac 
+		echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;;
 	*)
 		echo "Usage: reaction {COMMAND}" >&2
 		echo "Interacts with reaction endpoints"
@@ -690,30 +653,25 @@ role() {
 	case $1 in
 	'new'|'edit'|'del'|'list'|'give'|'take'|'pos_edit')
 		read -r TEXT
-		GUILD=$(echo "$TEXT" | jq -r ".guild")
 		case $1 in
 		'new')
-			PAYLOAD=$(echo "$TEXT" | format-args json "name,permissions,color,hoist,mentionable")
-			echo "$PAYLOAD" | dapi POST "/guilds/$GUILD/roles" ;;
+			COMMAND='POST'; ROUTE='/guilds/$1/roles'; TYPE='json'
+			DATA_ARGS='name,permissions,color,hoist,mentionable'; URL_ARGS='.guild' ;;
 		'edit')
-			ROLE=$(echo "$TEXT"| jq -r ".id")
-			PAYLOAD=$(echo "$TEXT" | format-args json "name,permissions,color,hoist,mentionable")
-			echo "$PAYLOAD" | dapi PATCH "/guilds/$GUILD/roles/$ROLE" ;;
+			COMMAND='PATCH'; ROUTE='/guilds/$1/roles/$2'; TYPE='json'; 
+			DATA_ARGS='name,permissions,color,hoist,mentionable'; URL_ARGS='.guild,.id' ;;
 		'del')
-			ROLE=$(echo "$TEXT"| jq -r ".id")
-			echo " " | dapi DELETE "/guilds/$GUILD/roles/$ROLE" ;;
+			COMMAND='DELETE'; ROUTE='/guilds/$1/roles/$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild,.id' ;;
 		'list')
-			echo " " | dapi GET "/guilds/$GUILD/roles" ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/roles'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild' ;;
 		'give')
-			ROLE=$(echo "$TEXT"| jq -r ".id"); USER=$(echo "$TEXT"| jq -r ".user")
-			echo " " | dapi PUT "/guilds/$GUILD/members/$USER/roles/$ROLE" ;;
+			COMMAND='PUT'; ROUTE='/guilds/$1/members/$2/roles/$3'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild,.user,.id' ;;
 		'take')
-			ROLE=$(echo "$TEXT"| jq -r ".id"); USER=$(echo "$TEXT"| jq -r ".user")
-			echo " " | dapi DELETE "/guilds/$GUILD/members/$USER/roles/$ROLE" ;;
+			COMMAND='DELETE'; ROUTE='/guilds/$1/members/$2/roles/$3'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.guild,.user,.id' ;;
 		'pos_edit')
-			PAYLOAD=$(echo "$TEXT" | jq '.data')
-			echo "$PAYLOAD" | dapi PATCH "/guild/$GUILD/roles" ;;
-		esac ;;
+			COMMAND='PATCH'; ROUTE='/guilds/$1/roles'; TYPE='json'; DATA_ARGS='.data'; URL_ARGS='.guild' ;;
+		esac
+		echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;;
 	*)
 		echo "Usage: role {COMMAND}" >&2
 		echo "Interacts with role endpoints"
@@ -775,22 +733,19 @@ user() {
 		read -r TEXT
 		case $1 in
 		'get')
-			USER=$(echo "$TEXT" | jq -r ".id")
-			echo " " | dapi GET "/users/$USER" ;;
+			COMMAND='GET'; ROUTE='/users/$1'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.id' ;;
 		'edit')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'name,avatar')
-			echo "$PAYLOAD" | dapi PATCH "/users/@me" ;;
+			COMMAND='PATCH'; ROUTE='/users/@me'; TYPE='json'; DATA_ARGS='name,avatar'; URL_ARGS='' ;;
 		'new_dm')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'id' | jq -cM '.recipient_id = .id | del(.id)')
-			echo "$PAYLOAD" | dapi POST "/users/@me/channels" ;;
+			COMMAND='POST'; ROUTE='/users/@me/channels'; TYPE='json'; DATA_ARGS='recipient_id'; URL_ARGS='' ;;
 		'dms')
-			echo " " | dapi GET "/users/@me/channels" ;;
+			COMMAND='GET'; ROUTE='/users/@me/channels'; TYPE='json'; DATA_ARGS=''; URL_ARGS='' ;;
 		'guilds')
-			QUERY=$(echo "$TEXT" | format-args url 'before,after,limit')
-			echo " " | dapi GET "/users/@me/guilds$QUERY" ;;
+			COMMAND='GET'; ROUTE='/users/@me/guilds'; TYPE='url'; DATA_ARGS='before,after,limit'; URL_ARGS='' ;;
 		'connections')
-			echo " " | dapi GET "/users/@me/connections" ;;
-		esac ;;
+			COMMAND='GET'; ROUTE='/users/@me/connections'; TYPE='json'; DATA_ARGS=''; URL_ARGS='' ;;
+		esac
+		echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;; 
 	*)
 		echo "Usage: user {COMMAND}" >&2
 		echo "Interacts with user endpoints"
@@ -805,8 +760,8 @@ user() {
 		echo "    name: (string) your new username"
 		echo "    avatar: (uri image) the data of your new avatar"
 		echo ""
-		echo "new_dm: {id}"
-		echo "    id: (snowflake) the id of the recipient"
+		echo "new_dm: {recipient_id}"
+		echo "    recipient_id: (snowflake) the id of the recipient"
 		echo ""
 		echo "dms"
 		echo ""
@@ -824,31 +779,31 @@ webhook() {
 	case $1 in
 	'exec'|'get'|'edit'|'del'|'list_ch'|'list_g')
 		read -r TEXT
-		COMMON=$(echo "$1"| jq -r '.id,.token')
-		mapfile -t COMMON <<< "$COMMON"
-
-		ID=${COMMON[0]}; TOKEN=${COMMON[1]}
-		[ -n "$TOKEN" ] && TOKEN="/$TOKEN"
 		case $1 in
 		'exec')
-			FILES=$(echo "$TEXT" | jq -cM '.files//empty')
-			PAYLOAD=$(echo "$TEXT" | format-args json 'content,embeds,files,username,avatar_url,tts')
-			if [[ -z $FILES ]]; then
-				echo "$PAYLOAD" | dapi POST "/webhooks/$ID$TOKEN" "{}"
+			unset COMMAND; DATA_ARGS='content,embeds,username,avatar_url,tts'
+			URL_ARGS='.files,.id,(if .token == null then "" else "/\(.token)" end)'
+			mapfile -t DATA <<< "$(echo "$TEXT" | format-args json "$DATA_ARGS" "$URL_ARGS")"
+			set -- "${DATA[@]:1}"; ARGS="${DATA[0]}"
+			if [ "$1" == 'null' ]; then
+				echo "$ARGS" | dapi POST "/webhooks/$2$3" 
 			else
-				echo "$PAYLOAD" | dapi @FILES "/webhooks/$ID$TOKEN" "$FILES"
+				echo "$ARGS" | dapi @FILES "/webhooks/$2$3" "$1"
 			fi ;;
 		'get')
-			echo " " | dapi GET "/webhooks/$ID$TOKEN" ;;
+			COMMAND='GET'; ROUTE='/webhooks/$1$2'; TYPE='json'; DATA_ARGS=''
+			URL_ARGS='.id,(if .token == null then "" else "/\(.token)" end)' ;;
 		'edit')
-			echo " " | dapi PATCH "/webhooks/$ID$TOKEN" ;;
+			COMMAND='PATCH'; ROUTE='/webhooks/$1$2'; TYPE='json'; DATA_ARGS=''
+			URL_ARGS='.id,(if .token == null then "" else "/\(.token)" end)' ;;
 		'del')
-			echo " " | dapi DELETE "/webhooks/$ID$TOKEN" ;;
+			COMMAND='DELETE'; ROUTE='/webhooks/$1$2'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.id,.token//empty' ;;
 		'list_ch')
-			echo " " | dapi GET "/channels/$ID/webhooks" ;;
+			COMMAND='GET'; ROUTE='/channels/$1/webhooks'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.id' ;;
 		'list_g')
-			echo " " | dapi GET "/guilds/$ID/webhooks"  ;;
-		esac ;;
+			COMMAND='GET'; ROUTE='/guilds/$1/webhooks'; TYPE='json'; DATA_ARGS=''; URL_ARGS='.id' ;;
+		esac 
+		[ -n "$COMMAND" ] && echo "$TEXT" | _route "$COMMAND" "$ROUTE" "$TYPE" "$DATA_ARGS" "$URL_ARGS" ;;
 	*)
 		echo "Usage: webhook {COMMAND}" >&2
 		echo "Interacts with webhook endpoints"
