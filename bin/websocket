@@ -7,10 +7,9 @@ _last-seq(){
 }
 
 _dispatch-event(){
-        #read -r PAYLOAD
-        PAYLOAD="$1"
+	F="$1"; PAYLOAD="$(cat "$F")"; rm -f "$F"
 
-        OP="$(echo "$PAYLOAD" | grep -oP '(?<="op":).*?(?=,)')"
+	OP="$(echo "$PAYLOAD" | grep -oP '(?<="op":).*?(?=,)')"
 	echo "$PAYLOAD" | tee "$EWDS/"* "$EWDG/"* >> /dev/null
 
         case $OP in
@@ -67,10 +66,18 @@ _ws-shard(){
 	SEQF="$MASH_STATUS_DIR/stat/seq_$1"
 	EWDG="$MASH_STATUS_DIR/wait/@"
 	EWDS="$MASH_STATUS_DIR/wait/${SHARD}"
+	EVNT="$MASH_STATUS_DIR/event"
 	[ ! -d "$EWDS" ] && mkdir "$EWDS"
+	[ ! -d "$EVNT" ] && mkdir "$EVNT"
 
-	URL="wss://gateway.discord.gg/?v=6&encoding=json"; DUMMY="{\"op\":-1, \"d\":null}"; JOBS="${MASH_JOB_LIMIT:-200}"
-	(tail -f "$PIPE" | websocat -S -tnE "$URL" | (for x in $(seq "$JOBS"); do echo "$DUMMY"; done; cat) | env_parallel -j"$JOBS" --lb -q -N1 _dispatch-event) &
+	URL="wss://gateway.discord.gg/?v=6&encoding=json"
+	DUMMY="{\"op\":-1, \"d\":null}"; JOBS="${MASH_JOB_LIMIT:-200}"
+	
+	(tail -f "$PIPE" | websocat -B 67108864 -tnE "$URL" | \
+	 (for x in $(seq "$JOBS"); do echo "$DUMMY"; done; cat) | \
+	 while read -r E; do F="$EVNT/$(uuidgen)"; echo "$E" > "$F"; echo "$F"; done | \
+	 env_parallel -j"$JOBS" --lb -q -N1 _dispatch-event) &
+
 	echo "$!" > "$PROC"
 	wait; return 1
 }
