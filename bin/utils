@@ -1,46 +1,46 @@
 #!/bin/bash
 
 set-args(){
-        ARGS=( $@ ); JSON=''
-        for ARG in "${ARGS[@]}"; do
-                IFS=':' read -ra ARGSQ <<< "$ARG"
-                KEY="${ARGSQ[0]}" VAR=${ARGSQ[1]:-${ARGSQ[0]}}
-                [ -n "${ARGSQ[2]}" ] && VALUE="${!VAR:-null}" || VALUE="\"${!VAR}\""
-                JSON="$JSON\"$KEY\":$VALUE,"
-        done
-        JSON="{${JSON::-1}}"; echo "$JSON" 
+	ARGS=( $@ ); JSON=''
+	for ARG in "${ARGS[@]}"; do
+		IFS=':' read -ra ARGSQ <<< "$ARG"
+		KEY="${ARGSQ[0]}" VAR=${ARGSQ[1]:-${ARGSQ[0]}}
+		[ -n "${ARGSQ[2]}" ] && VALUE="${!VAR:-null}" || VALUE="\"${!VAR}\""
+		JSON="$JSON\"$KEY\":$VALUE,"
+	done
+	JSON="{${JSON::-1}}"; echo "$JSON" 
 }
 
 get-args(){
-        read -r JSON
-        ARGS=( $@ ); RQ=''; Q=''
-        for ARG in "${ARGS[@]}"; do
-                IFS=':' read -ra ARGSQ <<< "$ARG"
-                KEY="${ARGSQ[0]}"
-                [ -n "${ARGSQ[2]}" ] && RQ="$RQ.$KEY," || Q="$Q.$KEY,"
-        done
+	read -r JSON
+	ARGS=( $@ ); RQ=''; Q=''
+	for ARG in "${ARGS[@]}"; do
+		IFS=':' read -ra ARGSQ <<< "$ARG"
+		KEY="${ARGSQ[0]}"
+		[ -n "${ARGSQ[2]}" ] && RQ="$RQ.$KEY," || Q="$Q.$KEY,"
+	done
 
-        if [ -n "$RQ" ]; then
-                RQ="${RQ::-1}"; RQ="$(echo "$JSON" | jq "$RQ")"
-                mapfile -t RQ <<< "$RQ"
-        fi
+	if [ -n "$RQ" ]; then
+		RQ="${RQ::-1}"; RQ="$(echo "$JSON" | jq "$RQ")"
+		mapfile -t RQ <<< "$RQ"
+	fi
 
-        if [ -n "$Q" ]; then
-                Q="${Q::-1}"; Q="$(echo "$JSON" | jq -r "$Q")"
-                mapfile -t Q <<< "$Q"
-        fi
+	if [ -n "$Q" ]; then
+		Q="${Q::-1}"; Q="$(echo "$JSON" | jq -r "$Q")"
+		mapfile -t Q <<< "$Q"
+	fi
 
-        for ARG in "${ARGS[@]}"; do
-                IFS=':' read -ra ARGSQ <<< "$ARG"
-                VAR=${ARGSQ[1]:-${ARGSQ[0]}}
-                if [ -n "${ARGSQ[2]}" ]; then
-                        VALUE="${RQ[0]}"; RQ="${RQ[@]:1}"
-                else
-                        VALUE="${Q[0]}"; Q="${Q[@]:1}"
-                fi
+	for ARG in "${ARGS[@]}"; do
+		IFS=':' read -ra ARGSQ <<< "$ARG"
+		VAR=${ARGSQ[1]:-${ARGSQ[0]}}
+		if [ -n "${ARGSQ[2]}" ]; then
+			VALUE="${RQ[0]}"; RQ="${RQ[@]:1}"
+		else
+			VALUE="${Q[0]}"; Q="${Q[@]:1}"
+		fi
 
-                echo "$VAR='$VALUE'"
-        done
+		echo "$VAR='$VALUE'"
+	done
 }
 
 format-args(){
@@ -65,27 +65,27 @@ urify(){
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-        echo "Usage: source utils" >&2
-        echo "Helper functions for the lib"
-        echo ""
-        echo "This script needs to be sourced to work properly"
-        echo "The avaliable functions are listed below"
-        echo ""
+	echo "Usage: source utils" >&2
+	echo "Helper functions for the lib"
+	echo ""
+	echo "This script needs to be sourced to work properly"
+	echo "The avaliable functions are listed below"
+	echo ""
 	echo "set-args {ARG1} [ARG2] ... [ARGN]"
-        echo "    Creates a json object using environment "
-        echo "    variables as key and values"
-        echo "        ARGs: {KEY}:[VAR]:[RAW]"
-        echo "            KEY: A json key"
-        echo "            VAR: A environment variable, KEY if empty"
-        echo "            RAW: Empty for string, @ for raw json"
-        echo ""
-        echo "get-args {ARG1} [ARG2] ... [ARGN]"
-        echo "    Returns an evaluable string of the keys"
-        echo "    and values from JSON keys"
-        echo "        ARGs: {KEY}:[VAR]:[RAW]"
-        echo "            KEY: A json key"
-        echo "            VAR: A environment variable, KEY if empty"
-        echo "            RAW: Empty for string, @ for raw json"
+	echo "    Creates a json object using environment "
+	echo "    variables as key and values"
+	echo "        ARGs: {KEY}:[VAR]:[RAW]"
+	echo "            KEY: A json key"
+	echo "            VAR: A environment variable, KEY if empty"
+	echo "            RAW: Empty for string, @ for raw json"
+	echo ""
+	echo "get-args {ARG1} [ARG2] ... [ARGN]"
+	echo "    Returns an evaluable string of the keys"
+	echo "    and values from JSON keys"
+	echo "        ARGs: {KEY}:[VAR]:[RAW]"
+	echo "            KEY: A json key"
+	echo "            VAR: A environment variable, KEY if empty"
+	echo "            RAW: Empty for string, @ for raw json"
 	echo ""
 	echo "format-args {FORMAT} {ARGS} {EXTRA}"
 	echo "    Filter unwanted args from STDIN and "
@@ -94,8 +94,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	echo "        ARGS: Args separated by comma"
 	echo "        EXTRA: A extra jq query"
 	echo ""
-        echo "urify {KEY}"
-        echo "    Opens the filepath on a JSON value, and converts "
+	echo "urify {KEY}"
+	echo "    Opens the filepath on a JSON value, and converts "
 	echo "    it to a URI scheme. Accepts a JSON string on STDIN"
 	echo "        KEY: A json key where the filepath is"
 fi

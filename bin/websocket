@@ -3,7 +3,7 @@ source utils
 . `which env_parallel.bash`
 
 _last-seq(){
-        SEQ="$(cat "$MASH_STATUS_DIR/stat/seq_$1" 2> /dev/null)"; echo "${SEQ:-0}"
+	SEQ="$(cat "$MASH_STATUS_DIR/stat/seq_$1" 2> /dev/null)"; echo "${SEQ:-0}"
 }
 
 _dispatch-event(){
@@ -12,24 +12,24 @@ _dispatch-event(){
 	OP="$(echo "$PAYLOAD" | grep -oP '(?<="op":).*?(?=,)')"
 	echo "$PAYLOAD" | tee "$EWDS/"* "$EWDG/"* >> /dev/null
 
-        case $OP in
-        0)
+	case $OP in
+	0)
 		TSDP='(?<="t":").*?(?=",)|(?<="s":).*?(?=,)|(?<="d":).*'
-        	TSD="$(echo "$PAYLOAD" | grep -oP "$TSDP" | head --bytes -2)"
-        	mapfile -t TSD <<< "$TSD"
-        	T="${TSD[0]}"; S="${TSD[1]}"; D="${TSD[2]}"
+		TSD="$(echo "$PAYLOAD" | grep -oP "$TSDP" | head --bytes -2)"
+		mapfile -t TSD <<< "$TSD"
+		T="${TSD[0]}"; S="${TSD[1]}"; D="${TSD[2]}"
 
-        	[ "$T" == 'READY' ] && (echo "$D" | jq -r '.session_id' > "$SESF")
+		[ "$T" == 'READY' ] && (echo "$D" | jq -r '.session_id' > "$SESF")
 		[[ "$S" != 'null' ]] && (echo "$S" > "$SEQF")
 	
 		F="MASH_DISPATCH_$T"; F="${!F}"
 		[ -n "$F" ] && "$F" "$D";;
-        7)
+	7)
 		ws-kill "$SHARD";;
-        9)
-        	rm -f "$SESF"; rm -f "$LOGF"
+	9)
+		rm -f "$SESF"; rm -f "$LOGF"
 		ws-kill "$SHARD";;
-        10)
+	10)
 		token="$MASH_AUTH_TOKEN"
 		if [ -f "$SESF" ]; then
 			session_id="$(cat "$SESF")"; seq="$(_last-seq "$SHARD")"
@@ -53,7 +53,7 @@ _dispatch-event(){
 			fi
 			sleep "$INTERVAL"
 		done;;
-        esac
+	esac
 }
 
 _ws-shard(){
@@ -167,7 +167,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	echo "    FUNCTION: The name of the function"
 	echo ""
 	echo "ewait {CONDITION} [TIMEOUT] [SHARD]"
-       	echo "    Watches the log until it finds a event that meet "
+	echo "    Watches the log until it finds a event that meet "
 	echo "    the jq condition, and outputs it"
 	echo "        CONDITION: A Jq string that returns a boolean"
 	echo "        TIMEOUT: In seconds, 0 for never expire"

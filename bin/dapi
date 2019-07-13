@@ -1,8 +1,8 @@
 #!/bin/bash
 
 if [ -z "$2" ]; then
-        echo "Usage: dapi {HTTP_COMMAND} {ROUTE}" >&2
-        echo "Connects to the REST Api routes"
+	echo "Usage: dapi {HTTP_COMMAND} {ROUTE}" >&2
+	echo "Connects to the REST Api routes"
 	echo ""
 	echo "Accepts JSON data on STDIN, and outputs the result"
 	echo "Special commands starts with @ and are listed below"
@@ -10,7 +10,7 @@ if [ -z "$2" ]; then
 	echo "@FILES:"
 	echo "    Send files using a POST request"
 	echo "    Accepts an array of filepaths"
-        exit 1
+	exit 1
 fi
 
 [ "${MASH_AUTH_BOT:-1}" != '0' ] && BOT='Bot '
