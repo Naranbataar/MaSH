@@ -55,9 +55,10 @@ echo "$id"
 
 ## Environment
 - `MASH_AUTH_TOKEN` - The token of the user
-- `MASH_AUTH_BOT` - `1` for bot users, `0` for user bots
+- `MASH_AUTH_BOT` - `1` for bot users, `0` for user bots (Default `1`)
+- `MASH_AUTH_GS` - Guild subscriptions, `1` for true, `0` for false (Default `0`)
 - `MASH_STATUS_DIR` - The directory where the scripts will save
-their pipes and statuses
+their pipes and statuses (Default `.mash_tmp`)
 - `MASH_DISPATCH_*` - Shards will dispatch the events to functions that
 environment variables with their respective names are referencing
 

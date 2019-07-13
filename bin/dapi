@@ -13,7 +13,7 @@ if [ -z "$2" ]; then
         exit 1
 fi
 
-[[ $MASH_AUTH_BOT == "1" ]] && BOT='Bot '
+[ "${MASH_AUTH_BOT:-1}" != '0' ] && BOT='Bot '
 [ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
 
 ROUTE=$(echo "$2" | cut -d'/' -f-3 | tr '/' '_')

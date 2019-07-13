@@ -30,15 +30,15 @@ _dispatch-event(){
         	rm -f "$SESF"; rm -f "$LOGF"
 		ws-kill "$SHARD";;
         10)
+		token="$MASH_AUTH_TOKEN"
 		if [ -f "$SESF" ]; then
-			token="$MASH_AUTH_TOKEN"
 			session_id="$(cat "$SESF")"; seq="$(_last-seq "$SHARD")"
 			set-args token session_id seq::@ | ws-send 6 "$SHARD"
 		else
-			token="$MASH_AUTH_TOKEN"
 			os="linux"; browser="mash"; device="mash"; shard="[$SHARD, $SHARDS]"
 			properties="$(set-args '$os:os' '$browser:browser' '$device:device')"
-			set-args token properties::@ shard::@ | ws-send 2 "$SHARD"
+			[ "${MASH_AUTH_GS:-0}" == '1' ] && gs='true' || gs='false'
+			set-args token properties::@ shard::@ guild_subscriptions:gs:@ | ws-send 2 "$SHARD"
 		fi
 
 		INTERVAL=$(echo "$PAYLOAD" | jq -r '.d|.heartbeat_interval'); WAIT=5
@@ -106,7 +106,7 @@ ws-start(){
 	trap "rm -rf '$MASH_STATUS_DIR'; kill 0" EXIT
 	export MASH_STATUS_DIR
 
-	[ "$MASH_AUTH_BOT" == "1" ] && SHARDS=$(echo " " | dapi GET "/gateway/bot" | jq -r '.shards//empty')
+	[ "${MASH_AUTH_BOT:-1}" != "0" ] && SHARDS=$(echo " " | dapi GET "/gateway/bot" | jq -r '.shards//empty')
 	SHARDS="${SHARDS:-1}"
 	for ((I=0;I<$SHARDS;I++)); do
 	       	_shard-loop "$I" "$SHARDS" &
