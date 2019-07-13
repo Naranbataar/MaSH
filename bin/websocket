@@ -123,6 +123,12 @@ ws-kill(){
 	[ -z "$1" ] && exit 1 || kill "$(cat "$MASH_STATUS_DIR/proc/shard_$1")"
 }
 
+dispatch(){
+	[ "$(type -t "$2")" == "function" ] && export -f "$2"
+	eval "MASH_DISPATCH_$1='$2'"
+	export "MASH_DISPATCH_$1"
+}
+
 ewait(){
 	[ -z "$1" ] && exit 1
 	PIPE="$MASH_STATUS_DIR/wait/${3:-@}/$(uuidgen)"
@@ -155,7 +161,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	echo "    Kills a shard that will automatically restart"
 	echo "        SHARD: The shard that will be killed"
 	echo ""
-	echo "ewait {CONDITION} [TIMEOUT] [SHARD]" >&2
+	echo "dispatch {EVENT} {FUNCTION}"
+	echo "    Defines a event dispatch route"
+	echo "    EVENT: The name of the event"
+	echo "    FUNCTION: The name of the function"
+	echo ""
+	echo "ewait {CONDITION} [TIMEOUT] [SHARD]"
        	echo "    Watches the log until it finds a event that meet "
 	echo "    the jq condition, and outputs it"
 	echo "        CONDITION: A Jq string that returns a boolean"

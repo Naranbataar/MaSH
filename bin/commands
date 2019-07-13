@@ -5,12 +5,6 @@ prefix(){
 	export "MASH_PREFIX"
 }
 
-dispatch(){
-	[ "$(type -t "$2")" == "function" ] && export -f "$2"
-	eval "MASH_DISPATCH_$1='$2'"
-	export "MASH_DISPATCH_$1"
-}
-
 xcommand(){
 	[ "$(type -t "$1")" == "function" ] && export -f "$1"
 	NAMES=( $2 )
@@ -68,11 +62,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	echo "    Sets the bot prefix variable"
 	echo "    PREFIX: A string having one or more prefixes"
 	echo ""
-	echo "dispatch {EVENT} {FUNCTION}"
-	echo "    Defines a event dispatch route"
-	echo "    EVENT: The name of the event"
-	echo "    FUNCTION: The name of the function"
-	echo ""
 	echo "xcommand {FUNC} {NAME} {CTX_STRING}"
 	echo "    Defines a command"
 	echo "    FUNC: The name of the function"
@@ -81,5 +70,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	echo "        needs to return values separated by lines"
 	echo "        an example would be '.channel_id,.id'"
 else
+	source websocket
 	dispatch MESSAGE_CREATE _parse-commands
 fi
