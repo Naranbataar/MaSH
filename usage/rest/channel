@@ -1,0 +1,72 @@
+Usage: channel {COMMAND}
+Interacts with channel endpoints
+
+Every command accept a string of JSON on STDIN
+Avaliable commands with their respective JSON keys
+
+get: {id}
+    id: (snowflake) the id of the channel
+
+new: {guild} {name} [type] [topic] [bitrate] [user_limit]
+[rate_limit_per_user] [position] [permission_overwrites]
+[parent_id] [nsfw]
+    guild: (snowflake) the id of the target guild
+    name: (string) channel name (2-100)
+    type: (integer) the type of channel
+    topic: (string) channel topic (0-1024)
+    bitrate: (integer) the bitrate of the voice channel (voice only)
+    user_limit: (integer) the user limit of the voice channel (voice only)
+    rate_limit_per_user: (integer) amount of seconds a user has to wait before
+        sending another message (0-21600)
+    position: (integer) sorting position of the channel
+    permission_overwrites: (array) array of overwrite objects
+        the channel's permission overwrites
+    parent_id: (snowflake): id of the parent category for a channel
+    nsfw: (boolean) whether the channel is nsfw
+
+edit: {id} {guild} {name} [topic] [bitrate] [user_limit]
+[rate_limit_per_user] [position] [permission_overwrites]
+[parent_id] [nsfw]
+    id: (snowflake) the id of the channel
+    name: (string): channel name (2-100)
+    topic: (string) channel topic (0-1024)
+    bitrate: (integer) the bitrate of the voice channel
+             (8000-96000, 128000 VIP)
+    user_limit: (integer) the user limit of the voice channel (0-99)
+    rate_limit_per_user: (integer) amount of seconds a user has to wait before
+                         sending another message (0-21600)
+    position: (integer) the position of the channel
+    permission_overwrites: (array) array of overwrite objects channel or
+                           category-specific permissions
+    parent_id: (snowflake) id of the new parent category for a channel
+    nsfw: (boolean) whether the channel is nsfw
+
+del: {id}
+    id: (snowflake) the id of the channel
+
+list: {guild}
+    guild: (snowflake) the id of the guild
+
+dm_add: {id} {user}
+    id: (snowflake) the id of the channel
+    user: (snowflake) the id of the user
+
+dm_remove: {id} {user}
+    id: (snowflake) the id of the channel
+    user: (snowflake) the id of the user
+
+pos_edit: {guild} {data}
+    guild: (snowflake) the id of the target guild
+    data: (array) an array of (snowflake, integer), containing the channel id
+          and the position
+
+perm_edit: {id} {allow} {deny} {type}
+    id: (snowflake) the id of the permission overwrite
+    channel: (snowflake) the id of the channel
+    allow: (integer) the bitwise value of all allowed permissions
+    deny: (integer) the bitwise value of all disallowed permissions
+    type: (string) 'member' for an user or 'role' for a role
+
+perm_delete: {id} {channel}
+    id: (snowflake) the id of the permission overwrite
+    channel: (snowflake) the id of the channel )

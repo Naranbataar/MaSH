@@ -1,0 +1,33 @@
+Usage: source utils
+Helper functions for the lib
+
+This script needs to be sourced to work properly
+The avaliable functions are listed below
+
+set-args {ARG1} [ARG2] ... [ARGN]
+    Creates a json object using environment
+    variables as key and values
+        ARGs: {KEY}:[VAR]:[RAW]
+            KEY: A json key
+            VAR: A environment variable, KEY if empty
+            RAW: Empty for string, @ for raw json
+
+get-args {ARG1} [ARG2] ... [ARGN]
+    Returns an evaluable string of the keys
+    and values from JSON keys
+        ARGs: {KEY}:[VAR]:[RAW]
+            KEY: A json key
+            VAR: A environment variable, KEY if empty
+            RAW: Empty for string, @ for raw json
+
+format-args {FORMAT} {ARGS} {EXTRA}
+    Filter unwanted args from STDIN and
+    returns only the specified to STDOUT
+        FORMAT: Output format, 'json' or 'url'
+        ARGS: Args separated by comma
+        EXTRA: A extra jq query
+
+urify {KEY}
+    Opens the filepath on a JSON value, and converts
+    it to a URI scheme. Accepts a JSON string on STDIN
+        KEY: A json key where the filepath is

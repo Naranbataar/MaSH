@@ -1,0 +1,33 @@
+Usage: reaction {COMMAND}
+Interacts with reaction endpoints
+
+Every command accept a string of JSON on STDIN
+Avaliable commands with their respective JSON keys
+
+get: {id} {channel} {emoji} [before] [after] [limit]
+    id: (snowflake) the id of the message
+    channel: (snowflake) the id of the channel
+    emoji: (string) the target emoji
+    before: (snowflake) get users before this message id
+    after: (snowflake) get users after this message id
+    limit: (integer)  max number of users to return (1-100)
+
+add: {id} {channel} {emoji}
+    id: (snowflake) the id of the message
+    channel: (snowflake) the id of the channel
+    emoji: (string) the target emoji
+
+del: {id} {channel} {emoji}
+    id: (snowflake) the id of the message
+    channel: (snowflake) the id of the channel
+    emoji: (string) the target emoji
+
+del_mod: {id} {channel} {emoji} {author}
+    id: (snowflake) the id of the message
+    channel: (snowflake) the id of the channel
+    emoji: (string) the target emoji
+    author: (snowflake) the reaction author
+
+del_all: {id} {channel}
+    id: (snowflake) the id of the message
+    channel: (snowflake) the id of the channel

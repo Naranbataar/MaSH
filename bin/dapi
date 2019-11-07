@@ -1,58 +1,81 @@
 #!/bin/bash
 
 if [ -z "$2" ]; then
-	echo "Usage: dapi {HTTP_COMMAND} {ROUTE}" >&2
-	echo "Connects to the REST Api routes"
-	echo ""
-	echo "Accepts JSON data on STDIN, and outputs the result"
-	echo "Special commands starts with @ and are listed below"
-	echo ""
-	echo "@FILES:"
-	echo "    Send files using a POST request"
-	echo "    Accepts an array of filepaths"
-	exit 1
+    cat ../usage/dapi >&2
+    exit 1
 fi
 
 [ "${MASH_AUTH_BOT:-1}" != '0' ] && BOT='Bot '
 [ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
 
-ROUTE=$(echo "$2" | cut -d'/' -f-3 | tr '/' '_')
+ROUTE=$(printf '%s\n' "$2" | cut -d'/' -f-3 | tr '/' '_')
 LIMITF="$MASH_STATUS_DIR/lock/$ROUTE"
 LIMITG="$MASH_STATUS_DIR/lock/global"
 HEADERS=$(mktemp)
 MASH_HTTP_USERAGENT="DiscordBot (https://github.com/Naranbataar/MaSH/ 1.3)"
 
-exec 4>"$LIMITF"; flock -s 4
-exec 5>"$LIMITG"; flock -s 5
+exec 4>"$LIMITF"
+flock -s 4
+exec 5>"$LIMITG"
+flock -s 5
 
 read -r TEXT
 if [ "$1" == '@FILES' ]; then
-	N=0; FILES=$(echo "$3" | jq '.[]' | while read -r f; do echo -n "-F 'file$N=@$f' "; N=$(( N+1 )); done)
-	RESULT="$(curl -s -X "POST" -D "$HEADERS" -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -F "payload_json=$TEXT" $FILES "https://discordapp.com/api$2")"
+    N=0
+    FILES="$(printf '%s\n' "$3" \
+             | jq '.[]' \
+             | while read -r f; do
+                   printf "-F 'file%s=@%s' " "$N" "$f"
+                   N=$(( N+1 ))
+               done)"
+    RESULT="$(curl -s -X "POST" -D "$HEADERS" \
+              -A "$MASH_HTTP_USERAGENT" \
+              -H "Authorization: $BOT$MASH_AUTH_TOKEN" \
+              -F "payload_json=$TEXT" \
+              $FILES "https://discordapp.com/api$2")"
 else
-	[ "$TEXT" != ' ' ] && d='-d @-'
-	RESULT="$(echo "$TEXT" | curl -s -X "$1" -D "$HEADERS" -A "$MASH_HTTP_USERAGENT" -H "Authorization: $BOT$MASH_AUTH_TOKEN" -H "Content-Type: application/json" "https://discordapp.com/api$2" $d)"
+    [ "$TEXT" != ' ' ] && D='-d @-'
+    RESULT="$(printf '%s\n' "$TEXT" \
+              | curl -s -X "$1" -D "$HEADERS" \
+                -A "$MASH_HTTP_USERAGENT" \
+                -H "Authorization: $BOT$MASH_AUTH_TOKEN" \
+                -H "Content-Type: application/json" \
+                "https://discordapp.com/api$2" $D)"
 fi
 
 HEADERS=$(cat "$HEADERS")
-if [[ "$(echo "$HEADERS" | head -n 1)" == *'429'* ]]; then
-	retry=$(echo "$(echo "$RESULT" | jq -r '.retry_after') / 1000" | bc -l)
-	global=$(echo "$RESULT" | jq -r '.global')
-	if [ "$global" == "true" ]; then
-		flock 5; touch "$LIMITG"; sleep "$retry"; rm -f "$LIMITG"; flock -u 5
-	else
-		flock 4; sleep "$retry"; flock -u 4
-	fi
-	$0 "$@"
-	exit
+if [[ "$(printf '%s\n' "$HEADERS" | head -n 1)" == *'429'* ]]; then
+    RETRY=$(printf '%s\n' "$(printf '%s\n' "$RESULT" \
+                             | jq -r '.retry_after') / 1000" \
+                             | bc -l)
+    GLOBAL=$(printf '%s\n' "$RESULT" | jq -r '.global')
+    if [ "$GLOBAL" == "true" ]; then
+        flock 5
+        touch "$LIMITG"
+        sleep "$RETRY"
+        rm -f "$LIMITG"
+        flock -u 5
+    else
+        flock 4
+        sleep "$RETRY"
+        flock -u 4
+    fi
+    $0 "$@"
+    exit
 else
-	echo "$RESULT"
+    printf '%s\n' "$RESULT"
 fi
 
-mapfile -t LIMITS <<< $(echo "$HEADERS" | grep -i "x-ratelimit" | sed 's/[^0-9]*//g')
-REMAINING=${LIMITS[1]}; RESET=${LIMITS[2]}
+mapfile -t LIMITS <<< $(printf '%s\n' "$HEADERS" \
+                        | grep -i "x-ratelimit" \
+                        | sed 's/[^0-9]*//g')
+
+REMAINING="${LIMITS[1]}"
+RESET="${LIMITS[2]}"
 if [ -n "$REMAINING" ]; then
-	if [ "$REMAINING" -lt 1 ]; then
-		flock 4; sleep "$(( (RESET - $(date '+%s')) ))"; flock -u 4
-	fi	
+    if [ "$REMAINING" -lt 1 ]; then
+        flock 4
+        sleep "$(( (RESET - $(date '+%s')) ))"
+        flock -u 4
+    fi
 fi

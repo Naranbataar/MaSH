@@ -1,0 +1,42 @@
+Usage: member {COMMAND}
+Interacts with member endpoints
+
+Every command accept a string of JSON on STDIN
+Avaliable commands with their respective JSON keys
+
+get: {id} {guild}
+    id: (snowflake) the id of the user
+    guild: (snowflake) the id of the guild
+
+new: {id} {guild} {access_token} [nick] [roles] [mute] [deaf]
+    id: (snowflake) the id of the user
+    guild: (snowflake) the id of the guild
+    access_token: (string) an oauth2 access token granted 
+        to the bot's application for the user you want to 
+        add to the guild 
+    nick: (string) value to set user's nickname to 
+    roles: (array) array of role ids the member is assigned
+    mute: (boolean) whether the user is muted in voice channels
+    deaf: (boolean) whether the user is deafened in voice channels
+
+edit: {id} {guild} {access_token} [nick] [roles] [mute] [deaf] [channel_id]
+    id: (snowflake) the id of the user
+    guild: (snowflake) the id of the guild
+    nick: (string) value to set user's nickname to 
+    roles: (array) array of role ids the member is assigned
+    mute: (boolean) whether the user is muted in voice channels
+    deaf: (boolean) whether the user is deafened in voice channels
+    channel_id: (snowflake|null) id of the voice channel to move user to
+
+del: {id} {guild}
+    id: (snowflake) the id of the user
+    guild: (snowflake) the id of the guild
+
+list: {guild} [limit] [after]
+    guild: (snowflake) the id of the guild
+    limit: (integer) max number of members to return (1-1000)
+    after: (snowflake) the highest user id in the previous page
+
+rename_me: {guild} {nick}
+    guild: (snowflake) the id of the guild
+    nick: (string) value to set your nickname to

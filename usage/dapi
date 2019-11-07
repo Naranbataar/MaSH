@@ -1,0 +1,9 @@
+Usage: dapi {HTTP_COMMAND} {ROUTE}
+Connects to the REST Api routes
+
+Accepts JSON data on STDIN, and outputs the result
+Special commands starts with @ and are listed below
+
+@FILES:
+    Send files using a POST request
+    Accepts an array of filepaths

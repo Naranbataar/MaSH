@@ -20,12 +20,14 @@ interact using the standart input/output
 main
 ```bash
 #!/bin/bash
-PATH="$PATH:$(realpath ./mash/bin)"
-source commands
-source websocket
+PATH="$PATH:$(realpath ./MaSH/bin)"
+source commands.sh
+source websocket.sh
 
-MASH_AUTH_TOKEN='TOKEN'; export MASH_AUTH_TOKEN
-MASH_AUTH_BOT=1; export MASH_AUTH_BOT
+MASH_AUTH_TOKEN='TOKEN'
+export MASH_AUTH_TOKEN
+MASH_AUTH_BOT=1
+export MASH_AUTH_BOT
 
 prefix '> ! ? mash'
 
@@ -35,15 +37,17 @@ on-resume(){ echo "Resumed"; }
 dispatch READY on-ready
 dispatch RESUMED on-resume
 
-xcommand 'bin/speak' 'say speak tell' '(.author|.id),.channel_id'
+xcommand 'commands/speak' 'say speak tell' '(.author|.id),.channel_id'
 
 ws-start
 ```
-bin/speak
+commands/speak
 ```bash
 #!/bin/bash
-source rest
-source utils
+source rest.sh
+source utils.sh
+
+mapfile -t CTX <<< "$CTX"
 
 content="<@${CTX[0]}> wants me to say: '$@'"
 channel="${CTX[1]}"
