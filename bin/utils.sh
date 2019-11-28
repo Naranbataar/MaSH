@@ -1,59 +1,55 @@
-#!/bin/bash
+#!/bin/sh
 
-set-args(){
-    ARGS=( $@ )
+set_args(){
     JSON=''
-    for ARG in "${ARGS[@]}"; do
-        IFS=':' read -ra ARGSQ <<< "$ARG"
-        KEY="${ARGSQ[0]}" VAR=${ARGSQ[1]:-${ARGSQ[0]}}
-        [ -n "${ARGSQ[2]}" ] && VALUE="${!VAR:-null}" || VALUE="\"${!VAR}\""
-        JSON="$JSON\"$KEY\":$VALUE,"
+    for ARG in "$@"; do
+        IFS=':' read -r KEY VAR RAW <<-EOF
+		$ARG
+		EOF
+        echo "$KEY $VAR $RAW"
+        VAR="${VAR:-$KEY}"
+        VAR="$(eval "echo \${$VAR}")"
+        [ -n "$RAW" ] && VALUE="${VAR:-null}" || VALUE="\"$VAR\""
+        JSON="${JSON}\"${KEY}\":$VALUE,"
     done
-    JSON="{${JSON::-1}}"
-    printf '%s\n' "$JSON"
+    printf '%s\n' "{${JSON%?}}"
 }
 
-get-args(){
+#this posix version may be slower, measure it
+get_args(){
     read -r JSON
-    local ARGS=( $@ )
-    local RQ=''
-    local Q=''
+    RQ=''; Q=''
 
-    for ARG in "${ARGS[@]}"; do
-        IFS=':' read -ra ARGSQ <<< "$ARG"
-        local KEY="${ARGSQ[0]}"
-        [ -n "${ARGSQ[2]}" ] && RQ="$RQ.$KEY," || Q="$Q.$KEY,"
+    for ARG in "$@"; do
+        IFS=':' read -r KEY VAR RAW <<-EOF
+		$ARG
+		EOF
+        [ -n "$RAW" ] && RQ="$RQ.$KEY," || Q="$Q.$KEY,"
     done
 
-    if [ -n "$RQ" ]; then
-        RQ="${RQ::-1}"
-        RQ="$(printf '%s\n' "$JSON" | jq "$RQ")"
-        mapfile -t RQ <<< "$RQ"
-    fi
+    [ -n "$RQ" ] && RQ="$(printf '%s\n' "$JSON" | jq "${RQ%?}")"
+    [ -n "$Q" ] && Q="$(printf '%s\n' "$JSON" | jq -r "${Q%?}")"
 
-    if [ -n "$Q" ]; then
-        Q="${Q::-1}"
-        Q="$(printf '%s\n' "$JSON" | jq -r "$Q")"
-        mapfile -t Q <<< "$Q"
-    fi
+    RQN=0; QN=0
+    for ARG in "$@"; do
+        IFS=':' read -r KEY VAR RAW <<-EOF
+		$ARG
+		EOF
+        VAR="${VAR:-$KEY}"
 
-    for ARG in "${ARGS[@]}"; do
-        IFS=':' read -ra ARGSQ <<< "$ARG"
-        VAR="${ARGSQ[1]:-${ARGSQ[0]}}"
-
-        if [ -n "${ARGSQ[2]}" ]; then
-            VALUE="${RQ[0]}"
-            RQ="${RQ[@]:1}"
+        if [ -n "$RAW" ]; then
+            VALUE="$(printf "$RQ" | sed -n "${RQN}p")"
+            RQN="$(( RQN + 1 ))"
         else
-            VALUE="${Q[0]}"
-            Q="${Q[@]:1}"
+            VALUE="$(printf "$Q" | sed -n "${QN}p")"
+            QN="$(( QN + 1 ))"
         fi
 
         printf '%s=%s\n' "$VAR" "'$VALUE'"
     done
 }
 
-format-args(){
+format_args(){
     read -r PAYLOAD
     case "$1" in
     'json')
@@ -61,9 +57,9 @@ format-args(){
         printf '%s\n' "$PAYLOAD" \
         | jq -cMr "({$2} | with_entries(select(.value!=null)))$EXTRA" ;;
     'url')
-        local URL_CODE="({$2} | with_entries(select(.value!=null))"
-        local URL_CODE="$URL_CODE | keys[] as \$k | \"\(\$k)=\(.[\$k])&\")"
-        local URL="$(printf '%s\n' "$PAYLOAD" | jq -jr "$URL_CODE")"
+        URL_CODE="({$2} | with_entries(select(.value!=null))"
+        URL_CODE="$URL_CODE | keys[] as \$k | \"\(\$k)=\(.[\$k])&\")"
+        URL="$(printf '%s\n' "$PAYLOAD" | jq -jr "$URL_CODE")"
 
         if [ -n "$URL" ]; then
             printf '?%s\n' "${URL%?}"
@@ -87,8 +83,3 @@ urify(){
     rm "$IMAGE.b64"
     printf '%s\n' "$TEXT"
 }
-
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    cat ../usage/utils >&2
-    exit 1
-fi

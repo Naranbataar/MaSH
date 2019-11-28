@@ -1,19 +1,15 @@
-#!/bin/bash
-source utils.sh
+#!/bin/sh
+. utils.sh
 
 _route(){
     read -r TEXT
-    local COMMAND="$1"
-    local ROUTE="$2"
-    local TYPE="$3"
-    local DATA_ARGS="$4"
-    local URL_ARGS="$5"
+    COMMAND="$1"; ROUTE="$2"; TYPE="$3"; DATA_ARGS="$4"; URL_ARGS="$5"
 
-    mapfile -t DATA <<< "$(printf '%s\n' "$TEXT" \
-                           | format-args "$TYPE" "$DATA_ARGS" "$URL_ARGS")"
-    set -- "${DATA[@]:1}"
-    ARGS="${DATA[0]}"
-    [ "$ARGS" == "{}" ] && ARGS=' '
+    DATA="$(printf '%s\n' "$TEXT" \
+            | format-args "$TYPE" "$DATA_ARGS" "$URL_ARGS")"
+    
+    ARGS="$(printf '%s\n' "$DATA" | head -n 1)"
+    [ "$ARGS" = "{}" ] && ARGS=' '
 
     case "$TYPE" in
     'json')
@@ -216,12 +212,12 @@ message() {
             _route 'GET' '/channels/$1/messages/$2' 'json' '' '.channel,.id' ;;
         'send')
             read -r TEXT
-            mapfile -t DATA <<< "$(printf '%s\n' "$TEXT" | \
-                                   format-args json \
-                                               'content,embed,nonce,tts' \
-                                               '.files,.channel')"
-            set -- "${DATA[@]:1}"; ARGS="${DATA[0]}"
-            if [ "$1" == 'null' ]; then
+            DATA="$(printf '%s\n' "$TEXT" | format-args json \
+                                            'content,embed,nonce,tts' \
+                                            '.files,.channel')"
+        set -- "$(printf '%s\n' "$DATA" | tail -n +2)"
+        ARGS="$(printf '%s\n' "$DATA" | head -n 1)"
+            if [ "$1" = 'null' ]; then
                 printf '%s\n' "$ARGS" | dapi POST "/channels/$2/messages"
             else
                 printf '%s\n' "$ARGS" | dapi @FILES "/channels/$2/messages" \
@@ -362,23 +358,23 @@ webhook() {
         'exec')
             read -r TEXT
             DATA_ARGS='content,embeds,username,avatar_url,tts'
-            URL_ARGS='.files,.id,(if .token == null then "" else "/\(.token)"'
+            URL_ARGS='.files,.id,(if .token = null then "" else "/\(.token)"'
             URL_ARGS="$URL_ARGS end)"
-            mapfile -t DATA <<< "$(printf '%s\n' "$TEXT" \
-                                   | format-args json "$DATA_ARGS" \
-                                     "$URL_ARGS")"
-            set -- "${DATA[@]:1}"; ARGS="${DATA[0]}"
-            if [ "$1" == 'null' ]; then
+            DATA="$(printf '%s\n' "$TEXT" | format-args json "$DATA_ARGS" \
+                                            "$URL_ARGS")"
+            set -- "$(printf '%s\n' "$DATA" | tail -n +2)"
+            ARGS="$(printf '%s\n' "$DATA" | head -n 1)"
+            if [ "$1" = 'null' ]; then
                 printf '%s\n' "$ARGS" | dapi POST "/webhooks/$2$3"
             else
                 printf '%s\n' "$ARGS" | dapi @FILES "/webhooks/$2$3" "$1"
             fi ;;
         'get')
             _route 'GET' '/webhooks/$1$2' 'json' '' \
-                   '.id,(if .token == null then "" else "/\(.token)" end)' ;;
+                   '.id,(if .token = null then "" else "/\(.token)" end)' ;;
         'edit')
             _route 'PATCH' '/webhooks/$1$2' 'json' '' \
-                   '.id,(if .token == null then "" else "/\(.token)" end)' ;;
+                   '.id,(if .token = null then "" else "/\(.token)" end)' ;;
         'del')
             _route 'DELETE' '/webhooks/$1$2' 'json' '' '.id,.token//empty' ;;
         'list_ch')

@@ -1,4 +1,4 @@
-# MaSH - A minimalistic Discord API wrapper made in Bash
+# MaSH - A minimalistic Discord API wrapper compatible with Posix Shells
 MaSh is a set of scripts made in Bash to make possible to
 write Discord Bots on pure Shell Script
 
@@ -19,10 +19,10 @@ interact using the standart input/output
 ## Example
 main
 ```bash
-#!/bin/bash
+#!/bin/sh
 PATH="$PATH:$(realpath ./MaSH/bin)"
-source commands.sh
-source websocket.sh
+. commands.sh
+. websocket.sh
 
 MASH_AUTH_TOKEN='TOKEN'
 export MASH_AUTH_TOKEN
@@ -31,29 +31,31 @@ export MASH_AUTH_BOT
 
 prefix '> ! ? mash'
 
-on-ready(){ echo -e "$(echo "$1" | jq -r '.user | .username,.id')"; }
-on-resume(){ echo "Resumed"; }
+on_ready(){ printf "%s\n" "$1" | jq -r '.user | .username,.id' }
+on_resume(){ printf "Resumed\n"; }
 
-dispatch READY on-ready
-dispatch RESUMED on-resume
+dispatch READY on_ready
+dispatch RESUMED on_resume
 
 xcommand 'commands/speak' 'say speak tell' '(.author|.id),.channel_id'
 
-ws-start
+ws\_start
 ```
 commands/speak
 ```bash
 #!/bin/bash
-source rest.sh
-source utils.sh
+. rest.sh
+. utils.sh
 
-mapfile -t CTX <<< "$CTX"
+IFS=':' read -r user channel <<-EOF
+	"$ctx"
+EOF
 
-content="<@${CTX[0]}> wants me to say: '$@'"
-channel="${CTX[1]}"
-result="$(set-args content channel | message send)"
+content="$user wants me to say: '$@'"
+channel="$channel"
+result="$(set_args content channel | message send)"
 
-eval "$(echo "$result" | get-args id)"
+eval "$(echo "$result" | get_args id)"
 echo "$id"
 ```
 

@@ -1,15 +1,16 @@
-#!/bin/bash
-source utils.sh
+#!/bin/sh
+. utils.sh
 . `which env_parallel.bash`
+[ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
 
-_last-seq(){
+_last_seq(){
     SEQ="$(cat "$MASH_STATUS_DIR/stat/seq_$1" 2> /dev/null)"
     printf '%s\n' "${SEQ:-0}"
 }
 
-_dispatch-event(){
-    local FILE="$1"
-    local PAYLOAD="$(cat "$FILE")"
+_dispatch_event(){
+    FILE="$1"
+    PAYLOAD="$(cat "$FILE")"
     rm -f "$FILE"
 
     OP="$(printf '%s\n' "$PAYLOAD" | grep -oP '(?<="op":).*?(?=,)')"
@@ -17,43 +18,41 @@ _dispatch-event(){
 
     case "$OP" in
     0)
-        local TSDP='(?<="t":").*?(?=",)|(?<="s":).*?(?=,)|(?<="d":).*'
-        local TSD="$(printf '%s\n' "$PAYLOAD" \
-                     | grep -oP "$TSDP" | head --bytes -2)"
-        mapfile -t TSD <<< "$TSD"
-        local T="${TSD[0]}"
-        local S="${TSD[1]}"
-        local D="${TSD[2]}"
+        TSDP='(?<="t":").*?(?=",)|(?<="s":).*?(?=,)|(?<="d":).*'
+        TSD="$(printf '%s\n' "$PAYLOAD" | grep -oP "$TSDP" | head --bytes -2)"
+        IFS=':' read -r T S D <<-EOF
+		$TSD
+		EOF
 
-        [ "$T" == 'READY' ] && (printf '%s\n' "$D" \
+        [ "$T" = 'READY' ] && (printf '%s\n' "$D" \
                                 | jq -r '.session_id' > "$SESF")
-        [[ "$S" != 'null' ]] && (printf '%s\n' "$S" > "$SEQF")
+        [ "$S" != 'null' ] && (printf '%s\n' "$S" > "$SEQF")
 
-        local F="MASH_DISPATCH_$T"
-        F="${!F}"
+        F="MASH_DISPATCH_$T"
+        F="$(eval "echo \${$F}")"
         [ -n "$F" ] && "$F" "$D" 1>>/dev/null 2>> "$MASH_STATUS_DIR/log" ;;
     7)
-        ws-kill "$SHARD" ;;
+        ws_kill "$SHARD" ;;
     9)
         rm -f "$SESF"
         rm -f "$LOGF"
-        ws-kill "$SHARD" ;;
+        ws_kill "$SHARD" ;;
     10)
         token="$MASH_AUTH_TOKEN"
         if [ -f "$SESF" ]; then
             session_id="$(cat "$SESF")"
-            seq="$(_last-seq "$SHARD")"
-            set-args token session_id seq::@ | ws-send 6 "$SHARD"
+            seq="$(_last_seq "$SHARD")"
+            set_args token session_id seq::@ | ws_send 6 "$SHARD"
         else
             os="linux"
             browser="mash"
             device="mash"
             shard="[$SHARD, $SHARDS]"
-            properties="$(set-args '$os:os' '$browser:browser' \
+            properties="$(set_args '$os:os' '$browser:browser' \
                                    '$device:device')"
-            [ "${MASH_AUTH_GS:-0}" == '1' ] && gs='true' || gs='false'
-            set-args token properties::@ shard::@ guild_subscriptions:gs:@ \
-            | ws-send 2 "$SHARD"
+            [ "${MASH_AUTH_GS:-0}" = '1' ] && gs='true' || gs='false'
+            set_args token properties::@ shard::@ guild_subscriptions:gs:@ \
+            | ws_send 2 "$SHARD"
         fi
 
         WAIT=5
@@ -62,10 +61,10 @@ _dispatch-event(){
 
         while true; do
             LACK="$(date +%s%N)"
-            _last-seq "$SHARD" | ws-send 1 "$SHARD"
-            ACK="$(ewait '.op==11' "$WAIT" "$SHARD")"
+            _last_seq "$SHARD" | ws_send 1 "$SHARD"
+            ACK="$(ewait '.op=11' "$WAIT" "$SHARD")"
             if [ -z "$ACK" ]; then
-                ws-kill "$SHARD"
+                ws_kill "$SHARD"
                 break
             fi
             sleep "$INTERVAL"
@@ -73,7 +72,7 @@ _dispatch-event(){
     esac
 }
 
-_ws-shard(){
+_ws_shard(){
     SHARD="$1"; SHARDS="$2"
     PIPE="$MASH_STATUS_DIR/pipe/$1"
     rm -f "$PIPE"; mkfifo "$PIPE"
@@ -99,22 +98,22 @@ _ws-shard(){
            printf '%s\n' "$E" > "$F"
            printf '%s\n' "$F"
        done \
-     | env_parallel -j"$JOBS" --lb -q -N1 _dispatch-event) &
+     | env_parallel -j"$JOBS" --lb -q -N1 _dispatch_event) &
 
     printf '%s\n' "$!" > "$PROC"
     wait
     return "$?"
 }
 
-_shard-loop(){
-    until _ws-shard "$1" "$2"; do
+_shard_loop(){
+    until _ws_shard "$1" "$2"; do
         printf 'Shard %s: crashed with exit code %s... Reconnecting...' \
                "$1" "$?" >&2
         sleep 1
     done
 }
 
-ws-start(){
+ws_start(){
     if [ "$(set |(env;cat) | wc -c)" -ge 64000 ]; then
         printf 'Your environment is larger than 64kB,' >&2
         printf " env_parallel can't work\\n" >&2
@@ -141,13 +140,13 @@ ws-start(){
 
     I=0
     while [ "$I" -lt "$SHARDS" ]; do
-        _shard-loop "$I" "$SHARDS" &
+        _shard_loop "$I" "$SHARDS" &
         I="$(( I + 1 ))"
     done
     wait
 }
 
-ws-send(){
+ws_send(){
     [ -z "$1" ] && exit 1
     read -r TEXT
     PIPE="$MASH_STATUS_DIR/pipe/${2:-0}"
@@ -155,12 +154,11 @@ ws-send(){
                                                  status=none
 }
 
-ws-kill(){
+ws_kill(){
     [ -z "$1" ] && exit 1 || kill "$(cat "$MASH_STATUS_DIR/proc/shard_$1")"
 }
 
 dispatch(){
-    [ "$(type -t "$2")" == "function" ] && export -f "$2"
     eval "MASH_DISPATCH_$1='$2'"
     export "MASH_DISPATCH_$1"
 }
@@ -174,14 +172,10 @@ ewait(){
     trap "kill -9 $! 2> /dev/null; rm -f '$PIPE'" EXIT
 
     QUERY="fromstream(0|truncate_stream(inputs)) | select($1)"
-    while IFS= read -r EVENT || [[ -n "$EVENT" ]]; do
+    timeout "${2:-0}" cat "$PIPE" \
+    | jq -cM --stream --unbuffered "$QUERY" \
+    | while IFS= read -r EVENT || [ -n "$EVENT" ]; do
         printf '%s\n' "$EVENT"
         exit
-    done < <(timeout "${2:-0}" cat "$PIPE" \
-             | jq -cM --stream --unbuffered "$QUERY")
+    done
 }
-
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    cat ../usage/websocket >&2
-    exit 1
-fi

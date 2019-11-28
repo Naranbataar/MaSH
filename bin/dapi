@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 if [ -z "$2" ]; then
     cat ../usage/dapi >&2
@@ -20,7 +20,7 @@ exec 5>"$LIMITG"
 flock -s 5
 
 read -r TEXT
-if [ "$1" == '@FILES' ]; then
+if [ "$1" = '@FILES' ]; then
     N=0
     FILES="$(printf '%s\n' "$3" \
              | jq '.[]' \
@@ -44,12 +44,13 @@ else
 fi
 
 HEADERS=$(cat "$HEADERS")
-if [[ "$(printf '%s\n' "$HEADERS" | head -n 1)" == *'429'* ]]; then
+CODE="$(printf '%s\n' "$HEADERS" | head -n 1)"
+if [ "${CODE#*429}" != "$CODE" ]; then
     RETRY=$(printf '%s\n' "$(printf '%s\n' "$RESULT" \
                              | jq -r '.retry_after') / 1000" \
                              | bc -l)
     GLOBAL=$(printf '%s\n' "$RESULT" | jq -r '.global')
-    if [ "$GLOBAL" == "true" ]; then
+    if [ "$GLOBAL" = "true" ]; then
         flock 5
         touch "$LIMITG"
         sleep "$RETRY"
@@ -66,15 +67,13 @@ else
     printf '%s\n' "$RESULT"
 fi
 
-mapfile -t LIMITS <<< $(printf '%s\n' "$HEADERS" \
-                        | grep -i "x-ratelimit" \
-                        | sed 's/[^0-9]*//g')
-
-REMAINING="${LIMITS[1]}"
-RESET="${LIMITS[2]}"
+REMAINING="$(printf '%s\n' "$HEADERS" | grep -i "x-ratelimit-remaining" \
+             sed 's/[^0-9]*//g')"
 if [ -n "$REMAINING" ]; then
     if [ "$REMAINING" -lt 1 ]; then
         flock 4
+        RESET="$(printf '%s\n' "$HEADERS" | grep -i "x-ratelimit-reset" \
+                 sed 's/[^0-9]*//g')"
         sleep "$(( (RESET - $(date '+%s')) ))"
         flock -u 4
     fi
