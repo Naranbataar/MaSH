@@ -1,8 +1,5 @@
-Usage: source commands
+Usage: . commands.sh
 Helper functions for the lib
-
-This script needs to be sourced to work properly
-The avaliable functions are listed below
 
 prefix {PREFIX}
     Sets the bot prefix variable

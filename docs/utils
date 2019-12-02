@@ -1,8 +1,5 @@
-Usage: source utils
+Usage: . utils.sh
 Helper functions for the lib
-
-This script needs to be sourced to work properly
-The avaliable functions are listed below
 
 set-args {ARG1} [ARG2] ... [ARGN]
     Creates a json object using environment

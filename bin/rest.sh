@@ -14,13 +14,12 @@ _route(){
     case "$TYPE" in
     'json')
         printf '%s\n' "$ARGS" \
-        | dapi "$COMMAND" "$(eval "printf '%s\\n' \"$ROUTE\"")" ;;
+        | _dapi "$COMMAND" "$(eval "printf '%s\\n' \"$ROUTE\"")" ;;
     'url')
         printf " \n" \
-        | dapi "$COMMAND" "$(eval "printf '%s\\n' \"$ROUTE\"")$ARGS" ;;
+        | _dapi "$COMMAND" "$(eval "printf '%s\\n' \"$ROUTE\"")$ARGS" ;;
     esac
 }
-
 
 channel() {
     case "$1" in
@@ -59,7 +58,7 @@ channel() {
                   '.channel,.id' ;;
         esac ;;
     *)
-        cat ../usage/rest/channel >&2
+        printf 'channel: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }
@@ -82,7 +81,7 @@ emoji() {
             _route 'GET' '/guilds/$1/emojis' 'json' '' '.guild' ;;
         esac ;;
     *)
-        cat ../usage/rest/emoji >&2
+        printf 'emoji: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }
@@ -122,7 +121,7 @@ guild(){
             _route 'GET' '/guilds/$1/widget.png' 'url' 'style' '.guild' ;;
         esac ;;
     *)
-        cat ../usage/rest/guild >&2
+        printf 'guild: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }
@@ -148,7 +147,7 @@ integration() {
                    '.guild,.id' ;;
         esac ;;
     *)
-        cat ../usage/rest/integration >&2
+        printf 'integration: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }
@@ -170,7 +169,7 @@ invite() {
             _route 'GET' '/guilds/$1/invites' 'json' '' '.id' ;;
         esac ;;
     *)
-        cat ../usage/rest/invite >&2
+        printf 'invite: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }
@@ -196,7 +195,7 @@ member() {
                    '.guild' ;;
         esac ;;
     *)
-        cat ../usage/rest/member >&2
+        printf 'member: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }
@@ -218,9 +217,9 @@ message() {
         set -- "$(printf '%s\n' "$DATA" | tail -n +2)"
         ARGS="$(printf '%s\n' "$DATA" | head -n 1)"
             if [ "$1" = 'null' ]; then
-                printf '%s\n' "$ARGS" | dapi POST "/channels/$2/messages"
+                printf '%s\n' "$ARGS" | _dapi POST "/channels/$2/messages"
             else
-                printf '%s\n' "$ARGS" | dapi @FILES "/channels/$2/messages" \
+                printf '%s\n' "$ARGS" | _dapi @FILES "/channels/$2/messages" \
                                         "$1"
             fi ;;
         'edit')
@@ -243,7 +242,7 @@ message() {
                    'messages' '.channel' ;;
         esac ;;
     *)
-        cat ../usage/rest/message >&2
+        printf 'message: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }
@@ -268,7 +267,7 @@ moderation() {
             _route 'GET' '/guilds/$1/prune' 'url' 'days' '.guild' ;;
         esac ;;
     *)
-        cat ../usage/rest/moderation >&2
+        printf 'moderation: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }
@@ -294,7 +293,7 @@ reaction() {
                    'json' '' '.channel,.id' ;;
         esac ;;
     *)
-        cat ../usage/rest/moderation >&2
+        printf 'reaction: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }
@@ -323,7 +322,7 @@ role() {
             _route 'PATCH' '/guilds/$1/roles' 'json' '.data' '.guild' ;;
         esac ;;
     *)
-        cat ../usage/rest/role >&2
+        printf 'role: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }
@@ -346,7 +345,7 @@ user() {
             _route 'GET' '/users/@me/connections' 'json' '' '' ;;
         esac ;;
     *)
-        cat ../usage/rest/user >&2
+        printf 'user: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }
@@ -365,9 +364,9 @@ webhook() {
             set -- "$(printf '%s\n' "$DATA" | tail -n +2)"
             ARGS="$(printf '%s\n' "$DATA" | head -n 1)"
             if [ "$1" = 'null' ]; then
-                printf '%s\n' "$ARGS" | dapi POST "/webhooks/$2$3"
+                printf '%s\n' "$ARGS" | _dapi POST "/webhooks/$2$3"
             else
-                printf '%s\n' "$ARGS" | dapi @FILES "/webhooks/$2$3" "$1"
+                printf '%s\n' "$ARGS" | _dapi @FILES "/webhooks/$2$3" "$1"
             fi ;;
         'get')
             _route 'GET' '/webhooks/$1$2' 'json' '' \
@@ -383,7 +382,7 @@ webhook() {
             _route 'GET' '/guilds/$1/webhooks' 'json' '' '.id' ;;
         esac ;;
     *)
-        cat ../usage/rest/webhook >&2
+        printf 'webhook: Bad Option "%s\n"' "$1" >&2
         exit 1 ;;
     esac
 }

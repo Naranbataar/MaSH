@@ -1,23 +1,16 @@
 #!/bin/sh
 
-if [ -z "$2" ]; then
-    cat ../usage/dapi >&2
-    exit 1
-fi
-
-[ "${MASH_AUTH_BOT:-1}" != '0' ] && BOT='Bot '
-[ -z "$MASH_STATUS_DIR" ] && MASH_STATUS_DIR='.mash_tmp'
+TOKEN="$(cat "config/token")"
+[ "$(cat "config/bot")" = 'true' ] && BOT='Bot '
 
 ROUTE=$(printf '%s\n' "$2" | cut -d'/' -f-3 | tr '/' '_')
-LIMITF="$MASH_STATUS_DIR/lock/$ROUTE"
-LIMITG="$MASH_STATUS_DIR/lock/global"
+LIMITF="lock/$ROUTE"
+LIMITG="lock/global"
 HEADERS=$(mktemp)
-MASH_HTTP_USERAGENT="DiscordBot (https://github.com/Naranbataar/MaSH/ 1.3)"
+USERAGENT="DiscordBot (https://github.com/Naranbataar/MaSH/ 2.0)"
 
-exec 4>"$LIMITF"
-flock -s 4
-exec 5>"$LIMITG"
-flock -s 5
+exec 4>"$LIMITF"; flock -s 4
+exec 5>"$LIMITG"; flock -s 5
 
 read -r TEXT
 if [ "$1" = '@FILES' ]; then
@@ -29,16 +22,16 @@ if [ "$1" = '@FILES' ]; then
                    N=$(( N+1 ))
                done)"
     RESULT="$(curl -s -X "POST" -D "$HEADERS" \
-              -A "$MASH_HTTP_USERAGENT" \
-              -H "Authorization: $BOT$MASH_AUTH_TOKEN" \
+              -A "$USERAGENT" \
+              -H "Authorization: $BOT$TOKEN" \
               -F "payload_json=$TEXT" \
               $FILES "https://discordapp.com/api$2")"
 else
     [ "$TEXT" != ' ' ] && D='-d @-'
     RESULT="$(printf '%s\n' "$TEXT" \
               | curl -s -X "$1" -D "$HEADERS" \
-                -A "$MASH_HTTP_USERAGENT" \
-                -H "Authorization: $BOT$MASH_AUTH_TOKEN" \
+                -A "$USERAGENT" \
+                -H "Authorization: $BOT$TOKEN" \
                 -H "Content-Type: application/json" \
                 "https://discordapp.com/api$2" $D)"
 fi
@@ -52,14 +45,10 @@ if [ "${CODE#*429}" != "$CODE" ]; then
     GLOBAL=$(printf '%s\n' "$RESULT" | jq -r '.global')
     if [ "$GLOBAL" = "true" ]; then
         flock 5
-        touch "$LIMITG"
-        sleep "$RETRY"
-        rm -f "$LIMITG"
+        touch "$LIMITG"; sleep "$RETRY"; rm -f "$LIMITG"
         flock -u 5
     else
-        flock 4
-        sleep "$RETRY"
-        flock -u 4
+        flock 4; sleep "$RETRY"; flock -u 4
     fi
     $0 "$@"
     exit

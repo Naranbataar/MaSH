@@ -1,85 +1,87 @@
 #!/bin/sh
 
 set_args(){
-    JSON=''
-    for ARG in "$@"; do
-        IFS=':' read -r KEY VAR RAW <<-EOF
-		$ARG
+    json=''
+    for arg in "$@"; do
+        IFS=':' read -r key var raw <<-EOF
+		$arg
 		EOF
-        echo "$KEY $VAR $RAW"
-        VAR="${VAR:-$KEY}"
-        VAR="$(eval "echo \${$VAR}")"
-        [ -n "$RAW" ] && VALUE="${VAR:-null}" || VALUE="\"$VAR\""
-        JSON="${JSON}\"${KEY}\":$VALUE,"
+        var="${var:-$key}"
+        var="$(eval "echo \${$var}")"
+        [ -n "$raw" ] && value="${var:-null}" || value="\"$var\""
+        json="${json}\"${key}\":$value,"
     done
-    printf '%s\n' "{${JSON%?}}"
+    printf '%s\n' "{${json%?}}"
 }
 
 #this posix version may be slower, measure it
 get_args(){
-    read -r JSON
-    RQ=''; Q=''
+    read -r json
+    raw_query=''; str_query=''
 
-    for ARG in "$@"; do
-        IFS=':' read -r KEY VAR RAW <<-EOF
-		$ARG
+    for arg in "$@"; do
+        IFS=':' read -r key var raw <<-EOF
+		$arg
 		EOF
-        [ -n "$RAW" ] && RQ="$RQ.$KEY," || Q="$Q.$KEY,"
+        [ -n "$raw" ] && raw_query="$raw_query.$key," \
+                      || str_query="$str_query.$key,"
     done
 
-    [ -n "$RQ" ] && RQ="$(printf '%s\n' "$JSON" | jq "${RQ%?}")"
-    [ -n "$Q" ] && Q="$(printf '%s\n' "$JSON" | jq -r "${Q%?}")"
+    [ -n "$raw_query" ] && raw_query="$(printf '%s\n' "$json" \
+                                        | jq "${raw_query%?}")"
+    [ -n "$str_query" ] && str_query="$(printf '%s\n' "$json" \
+                                        | jq -r "${str_query%?}")"
 
-    RQN=0; QN=0
-    for ARG in "$@"; do
-        IFS=':' read -r KEY VAR RAW <<-EOF
-		$ARG
+    raw_n=0; str_n=0
+    for arg in "$@"; do
+        IFS=':' read -r key var raw <<-EOF
+		$arg
 		EOF
-        VAR="${VAR:-$KEY}"
+        var="${var:-$key}"
 
-        if [ -n "$RAW" ]; then
-            VALUE="$(printf "$RQ" | sed -n "${RQN}p")"
-            RQN="$(( RQN + 1 ))"
+        if [ -n "$raw" ]; then
+            value="$(printf "$raw_query" | sed -n "${raw_n}p")"
+            raw_n="$(( raw_n + 1 ))"
         else
-            VALUE="$(printf "$Q" | sed -n "${QN}p")"
-            QN="$(( QN + 1 ))"
+            value="$(printf "$str_query" | sed -n "${str_n}p")"
+            str_n="$(( str_n + 1 ))"
         fi
 
-        printf '%s=%s\n' "$VAR" "'$VALUE'"
+        printf '%s=%s\n' "$var" "'$value'"
     done
 }
 
 format_args(){
-    read -r PAYLOAD
+    read -r payload
     case "$1" in
     'json')
-        [ -n "$3" ] && EXTRA=",($3)"
-        printf '%s\n' "$PAYLOAD" \
-        | jq -cMr "({$2} | with_entries(select(.value!=null)))$EXTRA" ;;
+        [ -n "$3" ] && extra=",($3)"
+        printf '%s\n' "$payload" \
+        | jq -cMr "({$2} | with_entries(select(.value!=null)))$extra" ;;
     'url')
-        URL_CODE="({$2} | with_entries(select(.value!=null))"
-        URL_CODE="$URL_CODE | keys[] as \$k | \"\(\$k)=\(.[\$k])&\")"
-        URL="$(printf '%s\n' "$PAYLOAD" | jq -jr "$URL_CODE")"
+        url_code="({$2} | with_entries(select(.value!=null))"
+        url_code="$url_code | keys[] as \$k | \"\(\$k)=\(.[\$k])&\")"
+        url="$(printf '%s\n' "$payload" | jq -jr "$url_code")"
 
-        if [ -n "$URL" ]; then
-            printf '?%s\n' "${URL%?}"
+        if [ -n "$url" ]; then
+            printf '?%s\n' "${url%?}"
         else
             printf "\n"
         fi
 
         if [ -n "$3" ]; then
-            printf '%s\n' "$(printf '%s\n' "$PAYLOAD" | jq -r "$3")"
+            printf '%s\n' "$(printf '%s\n' "$payload" | jq -r "$3")"
         fi ;;
     esac
 }
 
 urify(){
-    read -r TEXT
-    IMAGE="$(printf '%s\n' "$TEXT" | jq -r ".$1")"
-    MIME="$(file -bN --mime-type "$IMAGE")"
-    printf '%s\n' "data:$MIME;base64,$(base64 -w 0 "$IMAGE")" > "$IMAGE.b64"
-    TEXT="$(printf '%s\n' "$TEXT" \
-            | jq --rawfile img "$IMAGE.b64" ".$1 = \$img")"
-    rm "$IMAGE.b64"
-    printf '%s\n' "$TEXT"
+    read -r text
+    image="$(printf '%s\n' "$text" | jq -r ".$1")"
+    mime="$(file -bN --mime-type "$image")"
+    printf '%s\n' "data:$mime;base64,$(base64 -w 0 "$image")" > "$image.b64"
+    text="$(printf '%s\n' "$text" \
+            | jq --rawfile img "$image.b64" ".$1 = \$img")"
+    rm "$image.b64"
+    printf '%s\n' "$text"
 }
