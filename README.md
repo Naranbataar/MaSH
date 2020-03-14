@@ -1,73 +1,66 @@
 # MaSH - A minimalistic Discord API wrapper compatible with Posix Shells
-MaSh is a set of scripts made in Bash to make possible to
-write Discord Bots on pure Shell Script
+MaSh is a set of scripts for writing Discord Bots
 
 ## Features
-- Unbloated and minimalistic
 - Follows the Unix Philosophy
-- Universal, scripts of any language can
-interact using the standart input/output
+- Modular and reliable
+- Little to no abstraction
+- Unbloated and minimalistic
+- Universal, scripts/binaries of any language can  
+interact using stdin/stdout
 - Wraps the entire REST API
 - Efficient rate limiting
 
 ## Requirements
+- A POSIX environment
 - `jq`
 - `curl`
 - `websocat`
-- `parallel`
+- `flock`, `nc` and `stdbuf` (already installed on most systems)
 
 ## Example
 main
-```bash
+```sh
 #!/bin/sh
-PATH="$PATH:$(realpath ./MaSH/bin)"
-. commands.sh
-. websocket.sh
-
-MASH_AUTH_TOKEN='TOKEN'
-export MASH_AUTH_TOKEN
-MASH_AUTH_BOT=1
-export MASH_AUTH_BOT
-
-prefix '> ! ? mash'
-
-on_ready(){ printf "%s\n" "$1" | jq -r '.user | .username,.id' }
-on_resume(){ printf "Resumed\n"; }
-
-dispatch READY on_ready
-dispatch RESUMED on_resume
-
-xcommand 'commands/speak' 'say speak tell' '(.author|.id),.channel_id'
-
-ws\_start
+PATH="$PATH:$(realpath MaSH/bin)"
+mash_ws 'TOKEN'
 ```
-commands/speak
-```bash
-#!/bin/bash
-. rest.sh
-. utils.sh
+dispatcher
+```sh
+#!/bin/sh
+PATH="$PATH:$(realpath MaSH/bin)"
+. MaSH/extra/utils.sh
 
-IFS=':' read -r user channel <<-EOF
-	"$ctx"
-EOF
+run_command(){
+    message="$1"
+    content="$(echo "$message" | jq -r '.d|.content')"
+    content="${content#>}"; name="${content%% *}"; args="${content#$name}"
 
-content="$user wants me to say: '$@'"
-channel="$channel"
-result="$(set_args content channel | message send)"
+    eval "$(printf '%s\n' "$message" | get_args d:data:@)"
+    eval "$(printf '%s\n' "$data" | get_args channel_id)"
+    
+    if [ "$(basename "$name")" != '..' ] && [ -f "commands/$name" ]; then
+        content="$(printf '%s\n' "$message" | "commands/$name" $args 2>&1)"
+    else
+        content="$name?"
+    fi
 
-eval "$(echo "$result" | get_args id)"
-echo "$id"
+    set_args channel:channel_id content | mash_api message send
+}
+
+mash_tools listener 'dispatcher' \
+       | jq --unbuffered -cM 'select((.op==0 and .t=="MESSAGE_CREATE")) |
+                              select((.d|.content|startswith(">")))' \
+       | while read -r message; do
+             run_command "$message" &
+         done
 ```
 
 ## Environment
-- `MASH_AUTH_TOKEN` - The token of the user
-- `MASH_AUTH_BOT` - `1` for bot users, `0` for user bots (Default `1`)
-- `MASH_AUTH_GS` - Guild subscriptions, `1` for true, `0` for false (Default `0`)
-- `MASH_STATUS_DIR` - The directory where the scripts will save
-their pipes and statuses (Default `.mash_tmp`)
-- `MASH_DISPATCH_*` - Shards will dispatch the events to functions that
-environment variables with their respective names are referencing
+- `MASH_HOME` - The directory where the internal filesystem
+will reside (Default `.mash`)
 
 ## Todo
+- Replacing `curl` usage with pure `nc`
+- Replacing `websocat` with a simpler tool
 - Voice Support
-
