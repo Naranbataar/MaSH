@@ -21,7 +21,8 @@ EOF
             value="${var:-null}"
         else
             var="$(printf '%s\n' "$var" \
-                   | sed 's/\\/\\\\/g; s/"/\\"/g')"
+                   | sed 's/\\/\\\\/g; s/"/\\"/g' \
+                   | awk 1 ORS='\\n')"
             value="\"$var\""
         fi
         json="${json}\"${key}\":$value,"
