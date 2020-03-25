@@ -24,7 +24,8 @@ EOF
             escapes2='s/\\/\\\\/g; s/"/\\"/g'
             var="$(printf '%s\n' "$var" \
                    | sed "$escapes; $escapes2" \
-                   | awk 1 ORS='\\n')"
+                   | awk 'y {print s} {s=$0;y=1} END {ORS=""; print s}' \
+                         ORS='\\n')"
             value="\"$var\""
         fi
         json="${json}\"${key}\":$value,"
