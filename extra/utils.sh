@@ -20,8 +20,10 @@ EOF
         if [ -n "$raw" ]; then 
             value="${var:-null}"
         else
+            escapes='s//\\r/g; s//\\f/g; s//\\b/g; s/	/\\t/g'
+            escapes2='s/\\/\\\\/g; s/"/\\"/g'
             var="$(printf '%s\n' "$var" \
-                   | sed 's/\\/\\\\/g; s/"/\\"/g' \
+                   | sed "$escapes; $escapes2" \
                    | awk 1 ORS='\\n')"
             value="\"$var\""
         fi
