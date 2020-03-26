@@ -60,11 +60,13 @@ listener(){
     fi
 
     pipe="$(home)/listeners/$1"
-    cleanup="rm -f \"$pipe\"; \"$0\" new_broker"
+    cleanup="rm -f \"$pipe\"; \"$0\" new_broker; exit"
     if mkfifo "$pipe"; then
         trap "$cleanup" INT TERM EXIT
         "$0" new_broker
-        cat "$pipe"
+        while [ -p "$pipe" ]; do
+            cat "$pipe" || break
+        done
     fi
 }
 
