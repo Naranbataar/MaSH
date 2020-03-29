@@ -33,6 +33,18 @@ _predict_limit(){
     fi
 }
 
+_ret_code(){
+    code="$(printf '%s\n' "$1" | head -n 1 | cut -d' ' -f2)"
+
+    case "$code" in
+    4*|5*) ret=1 ;;
+    *)  ret=0 ;;
+    esac
+
+    printf '%s\n' "$ret"
+}
+    
+
 # shellcheck disable=SC2086
 _dapi(){
     if ! (mash_tools home 2>&1) > /dev/null; then
@@ -87,7 +99,7 @@ _dapi(){
         if _429_handling "$headers" "$result"; then
             printf '%s\n' "$result"
             _predict_limit "$headers"
-            break
+            return "$(_ret_code "$headers")"
         fi
     done
 }
