@@ -4,13 +4,19 @@ true
 
 _429_handling(){
     ret=0
-    code="$(printf '%s\n' "$1" | head -n 1)"
+    code="$(printf '%s\n' "$1" | head -n 1 | cut -d' ' -f2)"
 
-    if [ "${code#*429}" != "$code" ]; then
-        retry=$(printf '%s\n' "$(printf '%s\n' "$2" \
-                                 | jq -r '.retry_after') / 1000" \
-                                 | bc -l)
-        global=$(printf '%s\n' "$2" | jq -r '.global')
+    if [ "$code" = 429 ]; then
+        if [ -n "$2" ]; then
+            retry=$(printf '%s\n' "$(printf '%s\n' "$2" \
+                                     | jq -r '.retry_after') / 1000" | bc -l)
+            global=$(printf '%s\n' "$2" | jq -r '.global')
+        else
+            num="$(printf '%s\n' "$1" | grep 'retry-after:' \
+                   | cut -d' ' -f2 | tr -d '')"
+            retry="$(printf '%s\n' "$num / 1000" | bc -l)"
+            global='false'
+        fi
         [ "$global" = "true" ] && id=4 || id=3
         flock "$id"; sleep "$retry"; flock -u "$id"
         ret=1
@@ -53,7 +59,7 @@ _dapi(){
     fi
 
     header_file="$(mktemp)"
-    useragent="DiscordBot (https://github.com/Naranbataar/MaSH/ 2.0)"
+    useragent="DiscordBot (https://github.com/Naranbataar/MaSH/ 2.1)"
     route="$(printf '%s\n' "$2" | cut -d'/' -f-3 | tr '/' '_')"
     token="$(cat "$(mash_tools home)/config/token")"
     bot="$(cat "$(mash_tools home)/config/bot")"
@@ -79,20 +85,20 @@ _dapi(){
                       -A "$useragent" \
                       -H "Authorization: $bot$token" \
                       -F "payload_json=$text" \
-                      $files "https://discordapp.com/api$2")"
+                      $files "https://discordapp.com/api/v6$2")"
         else
-            if [ "$text" != ' ' ]; then
-                d='-d @-'
+            if [ -n "$text" ] && [ "$text" != ' ' ]; then
+                printf '%s\n' "$text" \
+                | curl -s -X "$1" -D "$header_file" \
+                  -A "$useragent" -H "Authorization: $bot$token" \
+                  -H "Content-Type: application/json" \
+                  "https://discordapp.com/api/v6$2" -d @-
             else
-                unset d
+                true | curl -s -X "$1" -D "$header_file" \
+                -A "$useragent" -H "Authorization: $bot$token" \
+                "https://discordapp.com/api/v6$2" -d @-
             fi
 
-            result="$(printf '%s\n' "$text" \
-                      | curl -s -X "$1" -D "$header_file" \
-                        -A "$useragent" \
-                        -H "Authorization: $bot$token" \
-                        -H "Content-Type: application/json" \
-                        "https://discordapp.com/api$2" $d)"
         fi
 
         headers="$(cat "$header_file")"
@@ -242,8 +248,8 @@ emoji() {
 }
 
 guild(){
-    _check_option "$1" guild get new edit del embed_get embed_edit audit_log \
-                             vanity_url widget
+    _check_option "$1" guild get new edit del leave embed_get embed_edit \
+                             audit_log vanity_url widget
 
     case "$1" in
     'get') _route 'GET' '/guilds/$1' 'json' '' '.guild' ;;
@@ -260,6 +266,7 @@ guild(){
         data_args="$data_args,system_channel_id"
         _route 'PATCH' '/guilds/$1' 'json' "$data_args" '.guild' ;;
     'del') _route 'DELETE' '/guilds/$1' 'json' '' '.guild' ;;
+    'leave') _route 'DELETE' '/users/@me/guilds/$1' 'json' '' '.guild' ;;
     'embed_get') _route 'GET' '/guilds/$1/embed' 'json' '' '.guild' ;;
     'embed_edit') _route 'PATCH' '/guilds/$1/embed' 'json' \
                          'enabled,channel_id' '.guild' ;;
