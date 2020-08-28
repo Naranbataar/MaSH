@@ -5,10 +5,10 @@ ws_message(){
 }
 
 ws_proc_main(){
-    rm -f ipc/sockin
+    rm -f ipc/sockin && mkfifo ipc/sockin
     rm -f ipc/sockout && mkfifo ipc/sockout
     url="wss://gateway.discord.gg/?v=6&encoding=json"
-    nc -klU ipc/sockin | websocat -tnE -B 512000000 -S "$url" \
+    tail -f ipc/sockin | websocat -tnE -B 512000000 -S "$url" \
                        | stdbuf -o L tee ipc/control ipc/sequence \
                        >> ipc/sockout
     ws_kill 'Connection ended'
@@ -106,7 +106,7 @@ ws_proc_sequencer(){
 ws_send(){
     [ -z "$1" ] && exit 1
     read -r text
-    printf '{"op":%d,"d":%s}\n' "$1" "$text" | nc -U -w0 ipc/sockin
+    printf '{"op":%d,"d":%s}\n' "$1" "$text" >> ipc/sockin
 }
 
 ws_kill(){
@@ -151,10 +151,10 @@ ws_start(){
         while [ ! -p ipc/control ] || [ ! -p ipc/sequence ]; do
             sleep 1
         done
-        
         ws_proc_main &
         printf '%s\n' "$!" > proc/main
 
+        while [ ! -p ipc/sockout ]; do sleep 1; done
         mash_tools new_broker
 
         wait
