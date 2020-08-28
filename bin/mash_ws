@@ -103,6 +103,20 @@ ws_proc_sequencer(){
     ws_kill 'Stream closed (sequencer)'
 }
 
+ws_proc_broker(){
+    unset proc
+    rm -f ipc/broker && mkfifo ipc/broker
+    (printf '\n'; tail -f ipc/broker) | while read -r update; do
+        [ -n "$proc" ] && kill "$proc"
+        [ -d listeners/ ] || mkdir listeners
+        [ -L listeners/null ] || ln -s /dev/null listeners/null
+
+        tee listeners/* < ipc/sockout >> /dev/null &
+        proc="$!"
+    done
+    ws_kill 'Broker died'
+}
+
 ws_send(){
     [ -z "$1" ] && exit 1
     read -r text
@@ -155,7 +169,8 @@ ws_start(){
         printf '%s\n' "$!" > proc/main
 
         while [ ! -p ipc/sockout ]; do sleep 1; done
-        mash_tools new_broker
+        ws_proc_broker &
+        printf '%s\n' "$!" > proc/broker
 
         wait
         ws_message 'Restarting...'

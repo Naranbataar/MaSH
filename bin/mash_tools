@@ -28,29 +28,6 @@ proc_kill(){
     return "$ret"
 }
 
-new_broker(){
-    if [ ! "$#" -eq 0 ]; then
-        printf '%s\n' 'usage: mash_tools new_broker' >&2
-        printf '%s\n' 'Creates an updated broker, and kills the old one' >&2
-        return 1
-    fi
-
-    proc="$(home)/proc/broker"
-    pipe="$(home)/ipc/sockout"
-    folder="$(home)/listeners"
-
-    [ -d "$folder" ] || mkdir "$folder"
-    [ -L "$folder/null" ] || ln -s /dev/null "$folder/null"
-    [ -f "$proc" ] && proc_kill broker
-
-    while [ ! -p "$pipe" ]; do
-        sleep 1
-    done
-
-    tee "$folder/"* < "$pipe" >> /dev/null &
-    printf '%s\n' "$!" > "$proc"
-}
-
 # shellcheck disable=SC2064
 listener(){
     if [ ! "$#" -eq 1 ]; then
@@ -60,10 +37,11 @@ listener(){
     fi
 
     pipe="$(home)/listeners/$1"
-    cleanup="(rm \"$pipe\" && \"$0\" new_broker) 2>/dev/null; exit"
+    cleanup="(rm \"$pipe\" && printf '\n' > \"$(home)/ipc/broker\")"
+    cleanup="$cleanup 2>/dev/null; exit"
     if mkfifo "$pipe"; then
         trap "$cleanup" INT TERM EXIT
-        "$0" new_broker
+        printf '\n' > "$(home)/ipc/broker"
         while [ -p "$pipe" ]; do
             cat "$pipe" 2>/dev/null || break
         done
@@ -72,7 +50,7 @@ listener(){
 
 opt="$1"; shift
 case "$opt" in
-    home|proc_kill|new_broker|listener) "$opt" "$@" ;;
+    home|proc_kill|listener) "$opt" "$@" ;;
     *)
         printf '%s\n' 'usage: mash_tools TOOL' >&2
         printf '%s\n' 'Important utilities' >&2
@@ -80,7 +58,6 @@ case "$opt" in
         printf '%s\n' 'Avaliable tools:' >&2
         printf '%s\n' 'home          Returns MaSH home directory' >&2
         printf '%s\n' 'proc_kill     Kills process by name' >&2
-        printf '%s\n' 'new_broker    Replaces the old broker' >&2
         printf '%s\n' 'listener      Listens to the broker' >&2
         exit 1 ;;
 esac
