@@ -1,5 +1,5 @@
 # MaSH - A minimalistic Discord API wrapper compatible with Posix Shells
-MaSh is a set of scripts for writing Discord Bots
+MaSH is a set of scripts for writing Discord Bots
 
 ## Features
 - Follows the Unix Philosophy
@@ -16,20 +16,18 @@ interact using stdin/stdout
 - `jq`
 - `curl`
 - `websocat`
-- `flock`, `nc` and `stdbuf` (already installed on most systems)
+- `flock` and `stdbuf` (already installed on most systems)
 
 ## Example
-main
 ```sh
-#!/bin/sh
-PATH="$PATH:$(realpath MaSH/bin)"
-mash_ws 'TOKEN'
-```
-dispatcher
-```sh
-#!/bin/sh
-PATH="$PATH:$(realpath MaSH/bin)"
+PATH="$PATH:$(realpath MaSH)"
 . MaSH/extra/utils.sh
+
+export MASH_TOKEN="TOKEN"
+export MASH_BOT=true
+export MASH_SHARD=0,1
+export MASH_GS=true
+export MASH_INTENTS=
 
 run_command(){
     message="$1"
@@ -38,17 +36,20 @@ run_command(){
 
     eval "$(printf '%s\n' "$message" | get_args d:data:@)"
     eval "$(printf '%s\n' "$data" | get_args channel_id)"
-    
+
     if [ "$(basename "$name")" != '..' ] && [ -f "commands/$name" ]; then
         content="$(printf '%s\n' "$message" | "commands/$name" $args 2>&1)"
     else
         content="$name?"
     fi
 
-    set_args channel:channel_id content | mash_api message send
+    set_args channel:channel_id content | mash api message send > /dev/null
 }
 
-mash_tools listener 'dispatcher' \
+mash start &
+
+while [ ! -d .mash ]; do sleep 1; done
+mash listen \
        | jq --unbuffered -cM 'select((.op==0 and .t=="MESSAGE_CREATE")) |
                               select((.d|.content|startswith(">")))' \
        | while read -r message; do
@@ -56,11 +57,6 @@ mash_tools listener 'dispatcher' \
          done
 ```
 
-## Environment
-- `MASH_HOME` - The directory where the internal filesystem
-will reside (Default `.mash`)
-
 ## Todo
-- Replacing `curl` usage with pure `nc`
-- Replacing `websocat` with a simpler tool
+- Replace `websocat` with a simpler tool
 - Voice Support

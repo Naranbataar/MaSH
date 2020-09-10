@@ -1,0 +1,704 @@
+#!/bin/sh
+
+mash_api_429_handling(){
+    ret=0
+    code="$(printf '%s\n' "$1" | head -n 1 | cut -d' ' -f2)"
+
+    if [ "$code" = 429 ]; then
+        if [ -n "$2" ]; then
+            retry=$(printf '%s\n' "$(printf '%s\n' "$2" \
+                                     | jq -r '.retry_after') / 1000" | bc -l)
+            global=$(printf '%s\n' "$2" | jq -r '.global')
+        else
+            num="$(printf '%s\n' "$1" | grep 'retry-after:' \
+                   | cut -d' ' -f2 | tr -d '')"
+            retry="$(printf '%s\n' "$num / 1000" | bc -l)"
+            global='false'
+        fi
+        [ "$global" = "true" ] && id=4 || id=3
+        flock "$id"; sleep "$retry"; flock -u "$id"
+        ret=1
+    fi
+
+    return "$ret"
+}
+
+mash_api_predict_limit(){
+    remaining="$(printf '%s\n' "$1" | grep -i "x-ratelimit-remaining" \
+                 | sed 's/[^0-9]*//g')"
+    if [ -n "$remaining" ]; then
+        if [ "$remaining" -lt 1 ]; then
+            flock 3
+            reset="$(printf '%s\n' "$1" | grep -i "x-ratelimit-reset-after" \
+                     | sed 's/[^0-9]*//g')"
+            sleep "$reset"
+            flock -u 3
+        fi
+    fi
+}
+
+mash_api_ret_code(){
+    code="$(printf '%s\n' "$1" | head -n 1 | cut -d' ' -f2)"
+
+    case "$code" in
+    4*|5*) ret=1 ;;
+    *)  ret=0 ;;
+    esac
+
+    printf '%s\n' "$ret"
+}
+
+# shellcheck disable=SC2086
+mash_api_do(){
+    header_file="$(mktemp)"
+    useragent="DiscordBot (https://github.com/Naranbataar/MaSH/ 3.0)"
+    route="$(printf '%s\n' "$2" | cut -d'/' -f-3 | tr '/' '_')"
+    token="$MASH_TOKEN"
+    bot="${MASH_BOT:-true}"
+    if [ "$bot" = 'true' ]; then
+        bot='Bot '
+    else
+        unset bot
+    fi
+
+    read -r text
+    while true; do
+        exec 3> .mash/lock/$route; flock -s 3
+        exec 4> .mash/lock/global; flock -s 4
+
+        if [ "$1" = '@FILES' ]; then
+            n=0
+            files="$(printf '%s\n' "$3" | jq '.[]' \
+                     | while read -r f; do
+                           printf "%sF 'file%s=@%s' " '-' "$n" "$f"
+                           n=$(( n+1 ))
+                       done)"
+            result="$(curl -s -X "POST" -D "$header_file" \
+                      -A "$useragent" \
+                      -H "Authorization: $bot$token" \
+                      -F "payload_json=$text" \
+                      $files "https://discordapp.com/api/v6$2")"
+        else
+            if [ -n "$text" ] && [ "$text" != ' ' ]; then
+                result="$(printf '%s\n' "$text" \
+                | curl -s -X "$1" -D "$header_file" \
+                  -A "$useragent" -H "Authorization: $bot$token" \
+                  -H "Content-Type: application/json" \
+                  "https://discordapp.com/api/v6$2" -d @-)"
+            else
+                result="$(true | curl -s -X "$1" -D "$header_file" \
+                -A "$useragent" -H "Authorization: $bot$token" \
+                "https://discordapp.com/api/v6$2" -d @-)"
+            fi
+
+        fi
+
+        headers="$(cat "$header_file")"
+        if mash_api_429_handling "$headers" "$result"; then
+            printf '%s\n' "$result"
+            mash_api_predict_limit "$headers"
+            return "$(mash_api_ret_code "$headers")"
+        fi
+    done
+}
+
+mash_api_fmtargs(){
+    read -r payload
+    case "$1" in
+    'json')
+        [ -n "$3" ] && extra=",($3)"
+        printf '%s\n' "$payload" \
+        | jq -cMr "({$2} | with_entries(select(.value!=null)))$extra" ;;
+    'url')
+        url_code="({$2} | with_entries(select(.value!=null))"
+        url_code="$url_code | keys[] as \$k | \"\(\$k)=\(.[\$k])&\")"
+        url="$(printf '%s\n' "$payload" | jq -jr "$url_code")"
+
+        ([ -n "$url" ] && printf '?%s\n' "${url%?}") || printf "\n"
+        [ -n "$3" ] && printf '%s\n' "$(printf '%s\n' "$payload" | jq -r "$3")"
+    esac
+}
+
+# shellcheck disable=SC2046
+mash_api_explain(){
+    rcommand="$1"; route="$2"; rtype="$3"; data_args="$4"; url_args="$5"
+
+    set -- $(printf '%s\n' "$url_args" | sed 's/,\./ $/g; s/.\.*/$/')
+    url="$(eval "printf '%s\\n' \"$route\"")"
+
+    unset args
+    if [ -n "$data_args" ]; then
+        case "$rtype" in
+        'json')
+            args=" with {$data_args}";;
+        'url')
+            code="({$data_args} | keys[] as \$k | \"\(\$k)=\$\(\$k)\")"
+            args="?$(printf '{}\n' | jq -r "$code" | tr '\n' '&' \
+                     | sed "s/.$//")" ;;
+        esac
+    fi
+
+    printf '%s %s%s\n' "$rcommand" "$url" "$args" >&2
+}
+
+# shellcheck disable=SC2046
+mash_api_route(){
+    read -r text
+    [ "$text" = '?' ] && mash_api_explain "$1" "$2" "$3" "$4" "$5" && return 1
+
+    rcommand="$1"; route="$2"; rtype="$3"; data_args="$4"; url_args="$5"
+
+    data="$(printf '%s\n' "$text" \
+            | mash_api_fmtargs "$rtype" "$data_args" "$url_args")"
+
+    set -- $(printf '%s\n' "$data" | tail -n +2)
+    url="$(eval "printf '%s\\n' \"$route\"")"
+
+    args="$(printf '%s\n' "$data" | head -n 1)"
+    [ "$args" = "{}" ] && args=' '
+
+    case "$rtype" in
+    'json') printf '%s\n' "$args" | mash_api_do "$rcommand" "$url" ;;
+    'url') printf ' \n' | mash_api_do "$rcommand" "$url$args" ;;
+    esac
+}
+
+mash_api_chkopt(){
+    option="$1"; shift
+    name="$1"; shift
+
+    for x in "$@"; do
+        [ "$x" = "$option" ] && return 0
+    done
+
+    spaces=0
+    for x in "$@"; do
+        [ "${#x}" -gt "$spaces" ] && spaces="${#x}"
+    done
+    spaces="$(( spaces + 4 ))"
+
+    printf 'usage: mash api %s COMMAND\n' "$name" >&2
+    printf '%s\n' 'Avaliable commands:' >&2
+    for x in "$@"; do
+        printf '%s' "$x" >&2
+        printf '%*c' "$(( spaces - ${#x} ))" ' ' >&2
+
+        code="$(printf '?\n' | eval "mash_api_$name $x" 2>&1)"
+        while [ "${#code}" -gt "$((80 - spaces))" ]; do
+            printf '%s\n' "$(printf '%s\n' "$code" | cut -c -79)" >&2
+            code="$(printf '%s\n' "$code" | cut -c 80-)"
+            [ -n "$code" ] && printf '%*c' "$spaces" ' ' >&2
+        done
+        [ -n "$code" ] && printf '%s\n' "$code" >&2
+    done
+
+    return 1
+}
+
+# shellcheck disable=SC2016
+mash_api_channel() {
+    mash_api_chkopt "$1" channel get new edit del list dm_add dm_remove \
+                               pos_edit perm_edit perm_delete
+
+    case "$1" in
+    'get') mash_api_route 'GET' '/channels/$1' 'json' '' '.id' ;;
+    'new')
+        data_args='name,type,topic,bitrate,user_limit,rate_limit_per_user'
+        data_args="$data_args,position,permission_overwrites,parent_id"
+        data_args="$data_args,nsfw"
+        mash_api_route 'POST' '/guilds/$1/channels' 'json' "$data_args" '.guild' ;;
+    'edit')
+        data_args='name,topic,bitrate,user_limit,rate_limit_per_user'
+        data_args="$data_args,position,permission_overwrites,parent_id"
+        data_args="$data_args,nsfw"
+        mash_api_route 'PATCH' '/channels/$1' 'json' "$data_args" '.id' ;;
+    'del') mash_api_route 'DELETE' '/channels/$1' 'json' '' '.id' ;;
+    'list') mash_api_route 'GET' '/guilds/$1/channels' 'json' '' '.guild' ;;
+    'dm_add') mash_api_route 'PUT' '/channels/$1/recipients/$2' 'json' '' \
+                     '.id,.user' ;;
+    'dm_remove') mash_api_route 'DELETE' '/channels/$1/recipients/$2' 'json' '' \
+                        '.id,.user' ;;
+    'pos_edit') mash_api_route 'PATCH' '/guilds/$1/channels' 'json' 'data' '.guild' ;;
+    'perm_edit') mash_api_route 'PUT' '/channels/$1/permissions/$2' 'json' \
+                        'allow,deny,type' '.channel,.id' ;;
+    'perm_delete') mash_api_route 'DELETE' '/channels/$1/permissions/$2' 'json' '' \
+                          '.channel,.id' ;;
+    esac
+}
+
+# shellcheck disable=SC2016
+mash_api_emoji() {
+    mash_api_chkopt "$1" emoji get new edit del list
+
+    case "$1" in
+    'get') mash_api_route 'GET' '/guilds/$1/emojis/$2' 'json' '' '.guild,.id' ;;
+    'new') mash_api_route 'POST' '/guilds/$1/emojis' 'json' 'name,image,roles' \
+                  '.guild' ;;
+    'edit') mash_api_route 'PATCH' '/guilds/$1/emojis/$2' 'json' 'name,roles' \
+                   '.guild,.id' ;;
+    'del') mash_api_route 'DELETE' '/guilds/$1/emojis/$2' 'json' '' '.guild,.id' ;;
+    'list') mash_api_route 'GET' '/guilds/$1/emojis' 'json' '' '.guild' ;;
+    esac
+}
+
+# shellcheck disable=SC2016
+mash_api_guild(){
+    mash_api_chkopt "$1" guild get new edit del leave embed_get embed_edit \
+                             audit_log vanity_url widget
+
+    case "$1" in
+    'get') mash_api_route 'GET' '/guilds/$1' 'json' '' '.guild' ;;
+    'new')
+        data_args='name,region,icon,verification_level'
+        data_args="$data_args,default_message_notifications"
+        data_args="$data_args,explicit_content_filter,roles,channels"
+        mash_api_route 'POST' '/guilds' 'json' "$data_args" '' ;;
+    'edit')
+        data_args='name,region,verification_level'
+        data_args="$data_args,default_message_notifications"
+        data_args="$data_args,explicit_content_filter,afk_channel_id"
+        data_args="$data_args,afk_timeout,icon,owner_id,splash"
+        data_args="$data_args,system_channel_id"
+        mash_api_route 'PATCH' '/guilds/$1' 'json' "$data_args" '.guild' ;;
+    'del') mash_api_route 'DELETE' '/guilds/$1' 'json' '' '.guild' ;;
+    'leave') mash_api_route 'DELETE' '/users/@me/guilds/$1' 'json' '' '.guild' ;;
+    'embed_get') mash_api_route 'GET' '/guilds/$1/embed' 'json' '' '.guild' ;;
+    'embed_edit') mash_api_route 'PATCH' '/guilds/$1/embed' 'json' \
+                         'enabled,channel_id' '.guild' ;;
+    'audit_log')
+        data_args='user_id,action_type,before,limit'
+        mash_api_route 'GET' '/guilds/$1/audit-logs' 'url' "$data_args" '.guild' ;;
+    'vanity_url') mash_api_route 'GET' '/guilds/$1/vanity-url' 'json' '' '.guild' ;;
+    'widget') mash_api_route 'GET' '/guilds/$1/widget.png' 'url' 'style' '.guild' ;;
+    esac
+}
+
+# shellcheck disable=SC2016
+mash_api_integration() {
+    mash_api_chkopt "$1" integration get new edit del sync
+
+    case "$1" in
+    'get') mash_api_route 'GET' '/guilds/$1/integrations' 'json' '' '.guild' ;;
+    'new') mash_api_route 'POST' '/guilds/$1/integrations' 'json' 'id,type' '.guild' ;;
+    'edit') mash_api_route 'PATCH' '/guilds/$1/integrations/$2' 'json' \
+                   'expire_behavior,expire_grace_period,enable_emoticons' \
+                   '.guild,.id' ;;
+    'del') mash_api_route 'DELETE' '/guilds/$1/integrations/$2' 'json' '' \
+                  '.guild,.id' ;;
+    'sync') mash_api_route 'POST' '/guilds/$1/integrations/$2/sync' 'json' '' \
+                   '.guild,.id' ;;
+    esac
+}
+
+# shellcheck disable=SC2016
+mash_api_invite() {
+    mash_api_chkopt "$1" invite get new del list_ch list_g
+
+    case "$1" in
+    'get') mash_api_route 'GET' '/invites/$1' 'json' '' '.code' ;;
+    'new') mash_api_route 'POST' '/channels/$1/invites' 'json' \
+                      'max_age,max_uses,temporary,unique' '.channel' ;;
+    'del') mash_api_route 'DELETE' '/invites/$1' 'json' '' '.code' ;;
+    'list_ch') mash_api_route 'GET' '/channels/$1/invites' 'json' '' '.id' ;;
+    'list_g') mash_api_route 'GET' '/guilds/$1/invites' 'json' '' '.id' ;;
+    esac
+}
+
+# shellcheck disable=SC2016
+mash_api_member() {
+    mash_api_chkopt "$1" member get new edit del list rename_me
+
+    case "$1" in
+    'get') mash_api_route 'GET' '/guilds/$1/members/$2' 'json' '' '.guild,.id' ;;
+    'new') mash_api_route 'PUT' '/guilds/$1/members/$2' 'json' \
+                  'access_token,nick,roles,mute,deaf' '.guild,.id' ;;
+    'edit') mash_api_route 'PATCH' '/guilds/$1/members/$2' 'json' \
+                   'nick,roles,mute,deaf,channel_id' '.guild,.id' ;;
+    'del') mash_api_route 'DELETE' '/guilds/$1/members/$2' 'json' '' '.guild,.id' ;;
+    'list') mash_api_route 'GET' '/guilds/$1/members' 'url' 'limit,after' '.guild' ;;
+    'rename_me') mash_api_route 'PATCH' '/guilds/$1/members/@me/nick' 'json' 'nick' \
+                        '.guild' ;;
+    esac
+}
+
+# shellcheck disable=SC2016
+mash_api_message() {
+    mash_api_chkopt "$1" message type get send edit delete pin unpin pins \
+                               bulk_get bulk_delete
+
+    case "$1" in
+    'type') mash_api_route 'POST' '/channels/$1/typing' 'json' '' '.channel' ;;
+    'get') mash_api_route 'GET' '/channels/$1/messages/$2' 'json' '' '.channel,.id' ;;
+    'send')
+        data_args='content,embed,nonce,tts,allowed_mentions'
+        url_args='.files,.channel'
+
+        read -r text
+        if [ "$text" = '?' ]; then
+            printf 'POST /channels/$channel/messages '
+            printf 'with {%s} and $files (arr of paths)\n' "$data_args"
+            return 1
+        fi
+
+        data="$(printf '%s\n' "$text" | mash_api_fmtargs json "$data_args" \
+                                        "$url_args")"
+        json="$(printf '%s\n' "$data" | head -n 1)"
+        params="$(printf '%s\n' "$data" | tail -n +2)"
+
+        files="$(printf '%s\n' "$params" | head -n 1)"
+        channel="$(printf '%s\n' "$params" | tail -n 1)"
+        if [ "$files" = 'null' ]; then
+            printf '%s\n' "$json" | mash_api_do POST "/channels/$channel/messages"
+        else
+            printf '%s\n' "$json" | mash_api_do @FILES \
+                                    "/channels/$channel/messages" "$files"
+        fi ;;
+    'edit') mash_api_route 'PATCH' '/channels/$1/messages/$2' 'json' \
+                   'content,embed,flags,allowed_mentions' '.channel,.id' ;;
+    'delete') mash_api_route 'DELETE' '/channels/$1/messages/$2' 'json' '' \
+                     '.channel,.id' ;;
+    'pin') mash_api_route 'PUT' '/channels/$1/pins/$2' 'json' '' '.channel,.id' ;;
+    'unpin') mash_api_route 'DELETE' '/channels/$1/pins/$2' 'json' '' '.channel,.id' ;;
+    'pins') mash_api_route 'GET' '/channels/$1/pins' 'json' '' '.channel' ;;
+    'bulk_get') mash_api_route 'GET' '/channels/$1/messages' 'url' \
+                       'before,after,around,limit' '.channel' ;;
+    'bulk_delete') mash_api_route 'POST' '/channels/$1/messages/bulk-delete' 'json' \
+                          'messages' '.channel' ;;
+    esac
+}
+
+# shellcheck disable=SC2016
+mash_api_moderation() {
+    mash_api_chkopt "$1" moderation ban unban get_ban get_bans prune count_prune
+
+    case "$1" in
+    'ban') mash_api_route 'PUT' '/guilds/$1/bans/$2' 'url' \
+                  'reason,"delete-message-days"' '.guild,.id' ;;
+    'unban') mash_api_route 'DELETE' '/guilds/$1/bans/$2' 'json' '' '.guild,.id' ;;
+    'get_ban') mash_api_route 'GET' '/guilds/$1/bans/$2' 'json' '' '.guild,.id' ;;
+    'get_bans') mash_api_route 'GET' '/guilds/$1/bans' 'json' '' '.guild' ;;
+    'prune') mash_api_route 'POST' '/guilds/$1/prune' 'url' \
+                    'days,"compute-prune-count"' '.guild' ;;
+    'count_prune') mash_api_route 'GET' '/guilds/$1/prune' 'url' 'days' '.guild' ;;
+    esac
+}
+
+# shellcheck disable=SC2016
+mash_api_reaction() {
+    mash_api_chkopt "$1" reaction get add del del_mod del_all del_all_for_emoji
+
+    case "$1" in
+    'get') mash_api_route 'GET' '/channels/$1/messages/$2/reactions/$3' 'url' \
+                  'before,after,limit' '.channel,.id,.emoji' ;;
+    'add') mash_api_route 'PUT' '/channels/$1/messages/$2/reactions/$3/@me' \
+                  'json' '' '.channel,.id,.emoji' ;;
+    'del') mash_api_route 'DELETE' '/channels/$1/messages/$2/reactions/$3/@me' \
+                  'json' '' '.channel,.id,.emoji' ;;
+    'del_mod') mash_api_route 'DELETE' '/channels/$1/messages/$2/reactions/$3/$4' \
+                      'json' '' '.channel,.id,.emoji,.author' ;;
+    'del_all') mash_api_route 'DELETE' '/channels/$1/messages/$2/reactions' \
+                      'json' '' '.channel,.id' ;;
+    'del_all_for_emoji')
+        mash_api_route 'DELETE' '/channels/$1/messages/$2/reactions/$3' \
+               'json' '' '.channel,.id,.emoji' ;;
+    esac
+}
+
+# shellcheck disable=SC2016
+mash_api_role() {
+    mash_api_chkopt "$1" role new edit del list give take pos_edit
+
+    case "$1" in
+    'new') mash_api_route 'POST' '/guilds/$1/roles' 'json' \
+                  'name,permissions,color,hoist,mentionable' '.guild' ;;
+    'edit') mash_api_route 'PATCH' '/guilds/$1/roles/$2' 'json' \
+                   'name,permissions,color,hoist,mentionable' '.guild,.id' ;;
+    'del') mash_api_route 'DELETE' '/guilds/$1/roles/$2' 'json' '' '.guild,.id' ;;
+    'list') mash_api_route 'GET' '/guilds/$1/roles' 'json' '' '.guild' ;;
+    'give') mash_api_route 'PUT' '/guilds/$1/members/$2/roles/$3' 'json' '' \
+                   '.guild,.user,.id' ;;
+    'take') mash_api_route 'DELETE' '/guilds/$1/members/$2/roles/$3' 'json' '' \
+                   '.guild,.user,.id' ;;
+    'pos_edit') mash_api_route 'PATCH' '/guilds/$1/roles' 'json' 'data' '.guild' ;;
+    esac
+}
+
+# shellcheck disable=SC2016
+mash_api_user() {
+    mash_api_chkopt "$1" user get edit new_dm dms guilds connections
+
+    case "$1" in
+    'get') mash_api_route 'GET' '/users/$1' 'json' '' '.id' ;;
+    'edit') mash_api_route 'PATCH' '/users/@me' 'json' 'name,avatar' '' ;;
+    'new_dm') mash_api_route 'POST' '/users/@me/channels' 'json' 'recipient_id' '' ;;
+    'dms') mash_api_route 'GET' '/users/@me/channels' 'json' '' '' ;;
+    'guilds') mash_api_route 'GET' '/users/@me/guilds' 'url' 'before,after,limit' '' ;;
+    'connections') mash_api_route 'GET' '/users/@me/connections' 'json' '' '' ;;
+    esac
+}
+
+# shellcheck disable=SC2016
+mash_api_webhook(){
+    mash_api_chkopt "$1" webhook exec get edit del list_ch list_g
+
+    case "$1" in
+    'exec')
+        read -r text
+        data_args='content,embeds,username,avatar_url,tts,allowed_mentions'
+        url_args='.files,.id,(if .token = null then "" else "/\(.token)"'
+        url_args="$url_args end)"
+
+        if [ "$text" = '?' ]; then
+            printf 'POST /webhooks/$id$token '
+            printf 'with {%s} and $files (arr of paths)\n' "$data_args"
+            return 1
+        fi
+
+        data="$(printf '%s\n' "$text" | mash_api_fmtargs json "$data_args" \
+                                        "$url_args")"
+        json="$(printf '%s\n' "$data" | head -n 1)"
+        params="$(printf '%s\n' "$data" | tail -n +2)"
+
+        files="$(printf '%s\n' "$params" | sed '1!d')"
+        id="$(printf '%s\n' "$params" | sed '2!d')"
+        token="$(printf '%s\n' "$params" | sed '3!d')"
+        if [ "$files" = 'null' ]; then
+            printf '%s\n' "$json" | mash_api_do POST "/webhooks/$id$token"
+        else
+            printf '%s\n' "$json" | mash_api_do @FILES \
+                                    "/webhooks/$id$token" "$files"
+        fi ;;
+    'get') mash_api_route 'GET' '/webhooks/$1$2' 'json' '' '.id,.token' ;;
+    'edit') mash_api_route 'PATCH' '/webhooks/$1$2' 'json' '' '.id,.token' ;;
+    'del') mash_api_route 'DELETE' '/webhooks/$1$2' 'json' '' '.id,.token' ;;
+    'list_ch') mash_api_route 'GET' '/channels/$1/webhooks' 'json' '' '.id' ;;
+    'list_g') mash_api_route 'GET' '/guilds/$1/webhooks' 'json' '' '.id' ;;
+    esac
+}
+
+mash_api(){
+    option="$1"; shift
+    case "$option" in
+        channel|emoji|guild|integration|invite|member \
+        |message|moderation|reaction|role|user|webhook) "mash_api_$option" "$@" ;;
+        *)
+            printf '%s\n' 'usage: mash api CATEGORY COMMAND' >&2
+            printf '%s\n' 'Avaliable categories:' >&2
+            printf '%s\n' 'channel emoji guild integration' >&2
+            printf '%s\n' 'invite member message moderation' >&2
+            printf '%s\n' 'reaction role user webhook' >&2
+            exit 1 ;;
+    esac
+}
+
+mash_ws_message(){
+    printf 'mash ws: %s\n' "$1" >&2
+}
+
+# shellcheck disable=SC2016
+# shellcheck disable=SC2059
+mash_ws_proc_heartbeat(){
+    payload="$1"
+    token="$MASH_TOKEN"
+    if [ -f .mash/stat/session ]; then
+        session_id="$(cat .mash/stat/session)"
+        seq="$(tail -n 1 .mash/stat/seq 2> /dev/null)"; seq="${seq:-0}"
+        
+        format='{"token": "%s", "session_id": "%s", "seq": %s}\n'
+        printf "$format" "$MASH_TOKEN" "$session_id" "$seq" | mash_ws_send 6
+        mash_ws_message 'Trying to resume'
+    else
+        prop='{"$os": "unix", "$browser": "mash", "$device": "mash"}'
+        shard="[${MASH_SHARD:-0,1}]" gs="${MASH_GS:-true}"
+        intents="$MASH_INTENTS"
+
+        base='"token": "%s", "properties": %s, "shard": %s'
+        base="$base, \"guild_subscriptions\": %s"
+        if [ -z "$intents" ]; then
+            printf "{$base}\n" "$token" "$prop" "$shard" "$gs" | mash_ws_send 2
+        else
+            base="$base, \"intents\": %s"
+            printf "{$base}\n" "$token" "$prop" "$shard" "$gs" \
+                               "$intents" | mash_ws_send 2
+        fi
+        mash_ws_message 'Trying to login'
+    fi
+
+    ack_timeout=5
+    interval=$(printf '%s\n' "$payload" | jq -r '.d|.heartbeat_interval')
+    interval="$(awk "BEGIN { print ($interval / 1000) - $ack_timeout }")"
+    while true; do
+        seq="$(tail -n 1 .mash/stat/seq 2> /dev/null)"; seq="${seq:-0}"
+        printf '%d\n' "$seq" > .mash/stat/seq
+
+        printf '%s\n' "$seq" | mash_ws_send 1
+        sleep "$ack_timeout"
+        [ ! -f .mash/stat/heartbeat ] && break
+        rm .mash/stat/heartbeat
+
+        sleep "$interval"
+    done
+    
+    mash_ws_kill connection
+}
+
+mash_ws_proc_controller(){
+    jq --unbuffered -cM \
+    'select((.op==0 and .t=="READY") or (.op==0 and .t=="RESUMED")
+     or .op==7 or .op==9 or .op==10 or .op==11)' \
+    | while read -r payload; do
+          op="$(printf '%s\n' "$payload" | jq -cM '.op')" 
+          case "$op" in
+          0)
+              t="$(printf '%s\n' "$payload" | jq -cMr '.t')"
+              case "$t" in
+              READY)
+                  printf '%s\n' "$payload" \
+                  | jq -r '.d|.session_id' > .mash/stat/session
+                  user="$(printf '%s\n' "$payload" \
+                          | jq -r '.d|.user|"\(.username)#\(.discriminator)"')"
+                  mash_ws_message "Logged as $user" ;;
+              RESUMED)
+                  mash_ws_message 'Resumed';;
+              esac ;;
+          7)
+              mash_ws_message 'Reconnection needed'
+              mash_ws_kill connection ;; 
+          9) 
+              mash_ws_message 'Bad session'
+              rm -f .mash/stat/session
+              mash_ws_kill connection ;;
+          10)
+              mash_ws_message 'Connection established'
+              mash_ws_proc_heartbeat "$payload" &
+              printf '%s\n' "$!" > .mash/proc/heartbeat ;;
+          11)
+              printf '%s\n' "$payload" > .mash/stat/heartbeat ;;
+          esac
+      done
+}
+
+mash_ws_proc_sequencer(){
+    jq --unbuffered -r 'select(.s!=null) | .s' > .mash/stat/seq
+}
+
+# shellcheck disable=SC2034
+mash_ws_proc_broker(){
+    unset proc
+    while true; do
+        [ -n "$proc" ] && kill "$proc"
+        [ -L .mash/listeners/null ] || ln -s /dev/null .mash/listeners/null
+
+        tee .mash/listeners/* < .mash/ipc/sockout >> /dev/null &
+        proc="$!"
+        
+        read -r update
+    done 2>/dev/null
+}
+
+mash_ws_send(){
+    read -r text
+    printf '{"op":%d,"d":%s}\n' "$1" "$text" >> .mash/ipc/sockin
+}
+
+mash_ws_kill(){
+    for pid in "$@"; do
+        pid="$(cat ".mash/proc/$pid")"
+        pkill -P "$pid"; kill "$pid" 2>/dev/null
+    done
+}
+
+mash_start(){
+    trap 'mash_stop' INT TERM
+    trap 'mash_ws_update_ipc' USR1
+
+    mkdir .mash
+    mkdir .mash/ipc .mash/stat .mash/proc .mash/lock .mash/listeners
+
+    mkfifo .mash/ipc/sockin .mash/ipc/sockout
+    mkfifo .mash/ipc/control .mash/ipc/sequence
+    mkfifo .mash/ipc/broker
+    exec 5<> .mash/ipc/sockin; exec 6<> .mash/ipc/sockout
+    exec 7<> .mash/ipc/control; exec 8<> .mash/ipc/sequence
+    exec 9<> .mash/ipc/broker
+
+    mash_ws_proc_controller <&7 &
+    printf '%d\n' "$!" > .mash/proc/controller
+    mash_ws_proc_sequencer <&8 &
+    printf '%d\n' "$!" > .mash/proc/sequencer
+    mash_ws_proc_broker <&9 &
+    printf '%d\n' "$!" > .mash/proc/broker
+
+    url="wss://gateway.discord.gg/?v=6&encoding=json"
+    while [ ! -f .mash/stat/finished ]; do
+        (websocat -tnE -B 512000000 -S "$url" <&5 | stdbuf -oL sed '' \
+        | tee .mash/ipc/control .mash/ipc/sequence >&6) &
+        printf '%d\n' "$!" > .mash/proc/connection
+        
+        wait "$(cat .mash/proc/connection)"
+        mash_ws_kill heartbeat
+    done
+
+    mash_ws_message 'Finishing...'
+    mash_ws_kill controller sequencer broker
+    rm -rf .mash
+}
+
+mash_reset(){
+    mash_ws_kill connection
+}
+
+mash_stop(){
+    touch .mash/stat/finished; mash_ws_kill connection
+}
+
+mash_say(){
+    cat > .mash/ipc/sockin  
+}
+
+# shellcheck disable=SC2064
+mash_listen(){
+    while [ ! -p .mash/ipc/broker ]; do sleep 1; done
+
+    exec 8<> .mash/ipc/broker
+    pipe=".mash/listeners/$(uuidgen)"
+    cleanup="(rm \"$pipe\" && printf '\n' >&8)"
+    cleanup="$cleanup 2>/dev/null; exit"
+    if mkfifo "$pipe"; then
+        trap "$cleanup" INT TERM EXIT
+        printf '\n' >&8
+        
+        cat "$pipe"
+    fi
+}
+
+mash_usage(){
+    printf '%s\n' 'usage: mash COMMAND' >&2
+    printf '%s\n' 'Avaliable commands:' >&2
+    printf '%s\n' 'start/reset/stop    Turns on/off the ws connection' >&2
+    printf '%s\n' 'say/listen          Sends/receives from the websocket' >&2
+    printf '%s\n' 'api                 Iteracts with the REST endpoints' >&2
+}
+
+tool="$1"; shift
+case "$tool" in
+start|reset|stop|say|listen)
+    case "$tool" in
+    start)
+        if [ -d .mash ]; then
+            mash_ws_message 'Already running'; exit 1
+        fi ;;
+    reset|stop|say|listen) 
+        if [ ! -d .mash ]; then
+            mash_ws_message 'Not running'; exit 1
+        fi ;;
+    esac
+
+    if [ "$#" -eq 0 ]; then
+        mash_$tool
+    else 
+        mash_usage
+    fi ;;
+api) mash_api "$@" ;;
+*) mash_usage ;;
+esac
